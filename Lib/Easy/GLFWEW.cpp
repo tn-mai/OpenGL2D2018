@@ -76,6 +76,7 @@ bool Window::Init(int w, int h, const char* title)
   if (!isGLFWInitialized) {
     glfwSetErrorCallback(ErrorCallback);
     if (glfwInit() != GL_TRUE) {
+      std::cerr << "ERROR: GLEW‚Ì‰Šú‰»‚ÉŽ¸”s‚µ‚Ü‚µ‚½." << std::endl;
       return false;
     }
     isGLFWInitialized = true;
@@ -84,6 +85,7 @@ bool Window::Init(int w, int h, const char* title)
   if (!window) {
     window = glfwCreateWindow(w, h, title, nullptr, nullptr);
     if (!window) {
+      std::cerr << "ERROR: GLEW‚Ì‰Šú‰»‚ÉŽ¸”s‚µ‚Ü‚µ‚½." << std::endl;
       return false;
     }
     glfwMakeContextCurrent(window);
