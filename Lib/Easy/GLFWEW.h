@@ -21,6 +21,7 @@ public:
   void SwapBuffers() const;
   const GamePad& GetGamePad() const;
   int NumOfKeyPressed() const { return numOfKeyPressed; }
+  bool KeyPressed(int key) const { return keyPressed[key]; }
   void Update();
   void ResetDeltaTime();
   float DeltaTime() const { return deltaTime; }
