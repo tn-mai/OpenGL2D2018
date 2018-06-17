@@ -18,6 +18,35 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Lib\Easy\Audio.cpp" />
+    <ClCompile Include="Lib\Easy\BufferObject.cpp" />
+    <ClCompile Include="Lib\Easy\Font.cpp" />
+    <ClCompile Include="Lib\Easy\FrameAnimation.cpp" />
+    <ClCompile Include="Lib\Easy\GLFWEW.cpp" />
+    <ClCompile Include="Lib\Easy\Node.cpp" />
+    <ClCompile Include="Lib\Easy\Shader.cpp" />
+    <ClCompile Include="Lib\Easy\Sprite.cpp" />
+    <ClCompile Include="Lib\Easy\Texture.cpp" />
+    <ClCompile Include="Lib\Easy\TweenAnimation.cpp" />
+    <ClCompile Include="Lib\Easy\UniformBuffer.cpp" />
+    <ClCompile Include="Src\Main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Lib\Easy\Audio.h" />
+    <ClInclude Include="Lib\Easy\BufferObject.h" />
+    <ClInclude Include="Lib\Easy\d3dx12.h" />
+    <ClInclude Include="Lib\Easy\Font.h" />
+    <ClInclude Include="Lib\Easy\FrameAnimation.h" />
+    <ClInclude Include="Lib\Easy\GamePad.h" />
+    <ClInclude Include="Lib\Easy\GLFWEW.h" />
+    <ClInclude Include="Lib\Easy\Node.h" />
+    <ClInclude Include="Lib\Easy\Shader.h" />
+    <ClInclude Include="Lib\Easy\Sprite.h" />
+    <ClInclude Include="Lib\Easy\Texture.h" />
+    <ClInclude Include="Lib\Easy\TweenAnimation.h" />
+    <ClInclude Include="Lib\Easy\UniformBuffer.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
     <ProjectGuid>{97D53DD8-FECD-4A00-86B6-7D628E5762A7}</ProjectGuid>
@@ -76,7 +105,23 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)Lib\glfw-3.2.1\include;$(ProjectDir)Lib\glew-2.1.0\include;$(ProjectDir)Lib\glm-0.9.8.5\include;$(ProjectDir)Lib\adx2le\include;$(ProjectDir)Lib\Easy;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>$(ProjectDir)Lib\glfw-3.2.1\lib\Debug\Win32;$(ProjectDir)Lib\glew-2.1.0\lib\Debug\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mfplat.lib;mfuuid.lib;mfreadwrite.lib;xaudio2.lib;opengl32.lib;glfw3dll.lib;glew32d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(TargetDir)glfw3.dll" (
+  robocopy "$(ProjectDir)Lib\glfw-3.2.1\lib\$(ConfigurationName)\$(PlatformName)" "$(TargetDir)\" glfw3.dll
+  if %errorlevel% lss 8 time /t &gt; nul
+)
+if not exist "$(TargetDir)glew32d.dll" (
+  robocopy "$(ProjectDir)Lib\glew-2.1.0\lib\$(ConfigurationName)\$(PlatformName)" "$(TargetDir)\" glew32d.dll
+  if %errorlevel% lss 8 time /t &gt; nul
+)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -94,11 +139,25 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>$(ProjectDir)Lib\glfw-3.2.1\include;$(ProjectDir)Lib\glew-2.1.0\include;$(ProjectDir)Lib\glm-0.9.8.5\include;$(ProjectDir)Lib\adx2le\include;$(ProjectDir)Lib\Easy;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_MBCS;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;NOMINMAX;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
+      <AdditionalLibraryDirectories>$(ProjectDir)Lib\glfw-3.2.1\lib\Release\Win32;$(ProjectDir)Lib\glew-2.1.0\lib\Release\Win32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>mfplat.lib;mfuuid.lib;mfreadwrite.lib;xaudio2.lib;opengl32.lib;glfw3dll.lib;glew32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PostBuildEvent>
+      <Command>if not exist "$(TargetDir)glfw3.dll" (
+  robocopy "$(ProjectDir)Lib\glfw-3.2.1\lib\$(ConfigurationName)\$(PlatformName)" "$(TargetDir)\" glfw3.dll
+  if %errorlevel% lss 8 time /t &gt; nul
+)
+if not exist "$(TargetDir)glew32d.dll" (
+  robocopy "$(ProjectDir)Lib\glew-2.1.0\lib\$(ConfigurationName)\$(PlatformName)" "$(TargetDir)\" glew32d.dll
+  if %errorlevel% lss 8 time /t &gt; nul
+)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -114,8 +173,6 @@
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
