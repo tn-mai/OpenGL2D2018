@@ -113,11 +113,62 @@ GLuint CreateVAO(GLuint vbo, GLuint ibo)
 } // unnamed namespace
 
 /**
+* Spriteを作成する.
+*
+* @param texname テクスチャファイルのパス.
+*/
+Sprite::Sprite(const char* texname) :
+  texture(Texture::LoadAndCache(texname))
+{
+  if (texture) {
+    Rectangle({ glm::vec2(), glm::vec2(texture->Width(), texture->Height()) });
+  }
+}
+
+/**
+* Spriteを作成する.
+*
+* @param texname テクスチャファイルのパス.
+* @param pos     表示する座標.
+*/
+Sprite::Sprite(const char* texname, const glm::vec3& pos) :
+  texture(Texture::LoadAndCache(texname))
+{
+  if (texture) {
+    Rectangle({ glm::vec2(), glm::vec2(texture->Width(), texture->Height()) });
+  }
+  Position(pos);
+}
+
+/**
+* Spriteを作成する.
+*
+* @param texname テクスチャファイルのパス.
+* @param pos     表示する座標.
+* @param r       テクスチャのどの部分を表示するか.
+*/
+Sprite::Sprite(const char* texname, const glm::vec3& pos, const Rect& r) :
+  texture(Texture::LoadAndCache(texname)),
+  rect(r)
+{
+  Position(pos);
+}
+
+/**
 * Spriteコンストラクタ.
 */
 Sprite::Sprite(const TexturePtr& tex) :
   texture(tex),
   rect({ glm::vec2(), glm::vec2(tex->Width(), tex->Height()) })
+{
+}
+
+/**
+* Spriteコンストラクタ.
+*/
+Sprite::Sprite(const TexturePtr& tex, const Rect& r) :
+  texture(tex),
+  rect(r)
 {
 }
 
@@ -139,10 +190,11 @@ void Sprite::Texture(const TexturePtr& tex)
 *
 * @param dt 前回の更新からの経過時間.
 */
-void Sprite::Update(glm::f32 delta)
+void Sprite::Update(glm::f32 dt)
 {
+  Node::Update(dt);
   if (animator) {
-    animator->Update(*this, delta);
+    animator->Update(*this, dt);
   }
 }
 
@@ -183,7 +235,7 @@ SpriteRenderer::~SpriteRenderer()
 * @retval true  初期化成功.
 * @retval false 初期化失敗.
 */
-bool SpriteRenderer::Init(size_t maxSpriteCount)
+bool SpriteRenderer::Initialize(size_t maxSpriteCount)
 {
   vbo = CreateVBO(sizeof(Vertex) * maxSpriteCount * 4, nullptr);
   std::vector<GLushort> indices;
@@ -342,7 +394,8 @@ void SpriteRenderer::Draw(const glm::vec2& screenSize) const
 
   const GLint matMVPLoc = glGetUniformLocation(shaderProgram, "matMVP");
   if (matMVPLoc >= 0) {
-    const glm::mat4x4 matProj = glm::perspective(glm::radians(45.0f), screenSize.x / screenSize.y, 200.0f, 1200.0f);
+    const glm::mat4x4 matProj = glm::ortho(-screenSize.x * 0.5f, screenSize.x * 0.5f, -screenSize.y * 0.5f, screenSize.y * 0.5f, 200.0f, 1200.0f);
+    //const glm::mat4x4 matProj = glm::perspective(glm::radians(45.0f), screenSize.x / screenSize.y, 200.0f, 1200.0f);
     const glm::mat4x4 matView = glm::lookAt(glm::vec3(0, 0, glm::tan(glm::radians(90.0f - 22.5f)) * screenSize.y * 0.5f), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
     const glm::mat4x4 matMVP = matProj * matView;
     glUniformMatrix4fv(matMVPLoc, 1, GL_FALSE, &matMVP[0][0]);

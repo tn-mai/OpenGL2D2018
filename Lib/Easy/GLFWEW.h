@@ -9,14 +9,18 @@
 
 namespace GLFWEW {
 
+// 先行宣言.
+class Window;
+using WindowRef = Window&;
+
 /**
 * GLFWとGLEWのラッパークラス.
 */
 class Window
 {
 public:
-  static Window& Instance();
-  bool Init(int w, int h, const char* title);
+  static WindowRef Instance();
+  bool Initialize(int w, int h, const char* title);
   bool ShouldClose() const;
   void SwapBuffers() const;
   const GamePad& GetGamePad() const;

@@ -8,12 +8,21 @@
 #include "FrameAnimation.h"
 #include <glm/glm.hpp>
 #include <vector>
+#include <memory>
+
+// 先行宣言
+class Sprite;
+using SpritePtr = std::shared_ptr<Sprite>; ///< スプライトポインタ.
 
 /**
 * 矩形構造体.
 */
 struct Rect
 {
+  Rect() = default;
+  Rect(const glm::vec2& xy, const glm::vec2& wh) : origin(xy), size(wh) {}
+  Rect(float x, float y, float w, float h) : origin(x, y), size(w, h) {}
+
   glm::vec2 origin; ///< 左下原点.
   glm::vec2 size; ///< 縦横の幅.
 };
@@ -31,8 +40,13 @@ enum BlendMode {
 class Sprite : public Node
 {
 public:
+  explicit Sprite(const char* texname);
+  Sprite(const char* texname, const glm::vec3& pos);
+  Sprite(const char* texname, const glm::vec3& pos, const Rect& r);
+
   Sprite() = default;
   explicit Sprite(const TexturePtr&);
+  Sprite(const TexturePtr&, const Rect&);
   virtual ~Sprite() = default;
   Sprite(const Sprite&) = default;
   Sprite& operator=(const Sprite&) = default;
@@ -57,7 +71,7 @@ private:
   TexturePtr texture;
   Rect rect = { glm::vec2(0, 0), glm::vec2(1, 1) };
   glm::vec4 color = glm::vec4(1);
-  BlendMode colorMode;
+  BlendMode colorMode = BlendMode_Multiply;
 
   FrameAnimation::AnimatePtr animator;
 };
@@ -73,16 +87,16 @@ public:
   SpriteRenderer(const SpriteRenderer&) = delete;
   SpriteRenderer& operator=(const SpriteRenderer&) = delete;
 
-  bool Init(size_t maxSpriteCount);
+  bool Initialize(size_t maxSpriteCount);
   void Update(const Node&);
   void Draw(const glm::vec2&) const;
   void ClearDrawData();
 
+  void BeginUpdate();
   bool AddVertices(const Sprite&);
+  void EndUpdate();
 
 private:
-  void BeginUpdate();
-  void EndUpdate();
   void MakeNodeList(const Node&, std::vector<const Node*>&);
 
   GLuint vbo = 0;

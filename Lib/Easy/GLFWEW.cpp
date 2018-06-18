@@ -41,7 +41,7 @@ void Window::KeyCallback(GLFWwindow* pWindow, int key, int scancode, int action,
 *
 * @return Windowのシングルトンインスタンス.
 */
-Window& Window::Instance()
+WindowRef Window::Instance()
 {
   static Window instance;
   return instance;
@@ -67,7 +67,7 @@ Window::~Window()
 * @retval true 初期化成功.
 * @retval false 初期化失敗.
 */
-bool Window::Init(int w, int h, const char* title)
+bool Window::Initialize(int w, int h, const char* title)
 {
   if (isInitialized) {
     std::cerr << "ERROR: GLFWEWは既に初期化されています." << std::endl;

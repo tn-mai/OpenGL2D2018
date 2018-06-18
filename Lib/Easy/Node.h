@@ -8,6 +8,9 @@
 #include <deque>
 #include <string>
 
+// 先行宣言.
+class SpriteRenderer;
+
 /**
 * ノードクラス.
 *
@@ -54,12 +57,12 @@ public:
 
   void UpdateRecursive(float dt);
   void UpdateTransform();
+  virtual void Update(float dt);
 
   void Tweener(const TweenAnimation::AnimatePtr& p) { tweener = p; }
   const TweenAnimation::AnimatePtr& Tweener() const { return tweener; }
 
 private:
-  virtual void Update(float dt);
   virtual void Draw(SpriteRenderer&) const;
 
   std::string name; ///< ノード名.

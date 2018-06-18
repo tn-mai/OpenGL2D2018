@@ -8,10 +8,18 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <unordered_map>
 
 #include "d3dx12.h"
 #include <wrl/client.h>
 #include <wincodec.h>
+
+namespace /* unnamed */ {
+
+using TextureCache = std::unordered_map<std::string, TexturePtr>;
+TextureCache  textureCache;
+
+} // unnamed namespace
 
 namespace wic {
 
@@ -140,6 +148,7 @@ WICPixelFormatGUID GetGLCompatibleWICFormat(const WICPixelFormatGUID& wicFormat)
 TexturePtr LoadFromFile(const char* filename)
 {
   if (!imagingFactory) {
+    std::cerr << "Texture::Initialize関数が呼ばれていません.\n" << "プログラムの初期化中にTexture::Initialize関数を呼び出してください." << std::endl;
     return {};
   }
 
@@ -149,6 +158,7 @@ TexturePtr LoadFromFile(const char* filename)
 
   ComPtr<IWICBitmapDecoder> decoder;
   if (FAILED(imagingFactory->CreateDecoderFromFilename(wcFilename.data(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, decoder.GetAddressOf()))) {
+    std::cerr << filename << "を読み込めません.\n" << "ファイル名を確認してください." << std::endl;
     return {};
   }
   ComPtr<IWICBitmapFrameDecode> frame;
@@ -175,6 +185,7 @@ TexturePtr LoadFromFile(const char* filename)
   if (glFormat.format == GL_NONE) {
     const WICPixelFormatGUID compatibleFormat = GetGLCompatibleWICFormat(wicFormat);
     if (compatibleFormat == GUID_WICPixelFormatDontCare) {
+      std::cerr << filename << "を読み込めません.\n" << "ファイル形式を確認してください." << std::endl;
       return {};
     }
     glFormat = GetGLFormatFromWICFormat(compatibleFormat);
@@ -213,7 +224,11 @@ TexturePtr LoadFromFile(const char* filename)
   if (FAILED(lock->GetDataPointer(&bmpBufferSize, &pData))) {
     return {};
   }
-  return Texture::Create(width, height, glFormat.internalformat, glFormat.format, glFormat.type, pData);
+  auto p = Texture::Create(width, height, glFormat.internalformat, glFormat.format, glFormat.type, pData);
+  if (p) {
+    p->Name(filename);
+  }
+  return p;
 }
 
 } // namespace dxgi
@@ -510,14 +525,22 @@ Texture::~Texture()
 
 /**
 * DXGI画像読み込み機能の初期化.
+*
+* @retval true 初期化成功.
+* @retval false 初期化失敗.
 */
-void Texture::Initialize()
+bool Texture::Initialize()
 {
   if (!wic::imagingFactory) {
     if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wic::imagingFactory)))) {
       std::cout << "WICImagingFactoryの作成に失敗." << std::endl;
+      return false;
     }
   }
+
+  textureCache.reserve(1024);
+
+  return true;
 }
 
 /**
@@ -526,6 +549,67 @@ void Texture::Initialize()
 void Texture::Finalize()
 {
   wic::imagingFactory.Reset();
+}
+
+/**
+* テクスチャをキャッシュする.
+*
+* @param tex キャッシュ対象のテクスチャ.
+*/
+void Texture::Cache(const TexturePtr& tex)
+{
+  auto itr = textureCache.find(tex->name);
+  if (itr == textureCache.end()) {
+    textureCache.emplace(tex->name, tex);
+  }
+}
+
+/**
+* テクスチャファイルがキャッシュされているか調べる.
+*
+* @param filename テクスチャファイルのパス.
+*
+* @retval true  filepathはキャッシュされている.
+* @retval false filepathはキャッシュされていない.
+*/
+bool Texture::IsCached(const char* filename)
+{
+  return textureCache.find(filename) != textureCache.end();
+}
+
+/**
+* テクスチャを読み込み、キャッシュする.
+*
+* @param filepath テクスチャファイルのパス.
+*
+* @return 作成に成功した場合はテクスチャポインタを返す.
+*         失敗した場合はnullptr返す.
+*/
+TexturePtr Texture::LoadAndCache(const char* filename)
+{
+  auto itr = textureCache.find(filename);
+  if (itr != textureCache.end()) {
+    return itr->second;
+  }
+  TexturePtr tex = LoadFromFile(filename);
+  if (tex) {
+    textureCache.emplace(tex->name, tex);
+  }
+  return tex;
+}
+
+/**
+* 参照されていないテクスチャをキャッシュから取り除く.
+*/
+void Texture::RemoveOrphan()
+{
+  for (auto itr = textureCache.begin(); itr != textureCache.end();) {
+    if (itr->second.use_count() == 1) {
+      itr = textureCache.erase(itr);
+    } else {
+      ++itr;
+    }
+  }
 }
 
 /**
@@ -611,6 +695,7 @@ TexturePtr Texture::LoadFromFile(const char* filename)
       p->width = header.width;
       p->height = header.height;
       p->texId = texId;
+      p->name = filename;
       return p;
     }
   }

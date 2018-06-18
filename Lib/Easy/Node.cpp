@@ -42,6 +42,7 @@ void Node::RemoveChild(Node* node)
   auto itr = std::find(children.begin(), children.end(), node);
   if (itr != children.end()) {
     (*itr)->parent = nullptr;
+    (*itr)->UpdateTransform();
     *itr = nullptr;
   }
 }
@@ -53,10 +54,8 @@ void Node::RemoveChild(Node* node)
 */
 void Node::UpdateRecursive(float dt)
 {
-  if (tweener) {
-    tweener->Update(*this, dt);
-  }
   Update(dt);
+
   for (auto& e : children) {
     if (e) {
       e->UpdateRecursive(dt);
@@ -92,7 +91,18 @@ void Node::UpdateTransform()
 */
 void Node::Update(float dt)
 {
-  // ‰½‚à‚µ‚È‚¢.
+  if (tweener) {
+    tweener->Update(*this, dt);
+  }
+
+  glm::mat4x4 parentTransform;
+  if (parent) {
+    parentTransform = parent->Transform();
+  }
+  glm::mat4x4 matShear;
+  matShear[1][0] = shear;
+  transform = glm::rotate(glm::scale(glm::translate(parentTransform, position), glm::vec3(scale, 1.0f)), rotation, glm::vec3(0, 0, 1)) * matShear;
+  worldPosition = transform * glm::vec4(0, 0, 0, 1);
 }
 
 /**
