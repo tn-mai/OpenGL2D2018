@@ -4,6 +4,7 @@
 #include "GLFWEW.h"
 #include "Texture.h"
 #include "Sprite.h"
+#include <list>
 
 const char title[] = "OpenGL2D 2018"; // ウィンドウタイトル.
 const int windowWidth = 800; // ウィンドウの幅.
@@ -14,9 +15,29 @@ Sprite sprBackground; // 背景用スプライト.
 Sprite sprPlayer;     // 自機用スプライト.
 glm::vec3 playerVelocity; // 自機の移動速度.
 
+/**
+* ゲームキャラクター.
+*/
+struct Actor
+{
+  Actor(const char* texname, const glm::vec3& pos, const Rect& r, const glm::vec3& vel, const Rect& col)
+  {
+    spr = Sprite(texname, pos, r);
+    velocity = vel;
+    collision = col;
+  }
+
+  Sprite spr;
+  glm::vec3 velocity;
+  Rect collision;
+};
+std::list<Actor> playerBulletList;
+std::list<Actor> enemyList;
+
 void processInput(GLFWEW::WindowRef);
 void update(GLFWEW::WindowRef);
 void render(GLFWEW::WindowRef);
+bool detectCollision(const Rect* lhs, const Rect* rhs);
 
 /**
 * プログラムのエントリーポイント.
@@ -75,6 +96,9 @@ void processInput(GLFWEW::WindowRef window)
   } else {
     playerVelocity.x = 0;
   }
+  if (gamepad.buttonDown & GamePad::A) {
+    playerBulletList.push_back(Actor("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16), glm::vec3(1200, 0, 0), Rect(-16, -8, 32, 16)));
+  }
   if (playerVelocity.x || playerVelocity.y) {
     playerVelocity = glm::normalize(playerVelocity) * 400.0f;
   }
@@ -106,6 +130,13 @@ void update(GLFWEW::WindowRef window)
     sprPlayer.Position(newPos);
   }
   sprPlayer.Update(deltaTime);
+
+  // 自機の弾の移動.
+  for (auto i = playerBulletList.begin(); i != playerBulletList.end(); ++i) {
+    i->spr.Position(i->spr.Position() + i->velocity * deltaTime);
+    i->spr.Update(deltaTime);
+  }
+  playerBulletList.remove_if([](const Actor& e) { return e.spr.Position().x > (0.5f * (windowWidth + e.spr.Rectangle().size.x)); });
 }
 
 /**
@@ -118,8 +149,26 @@ void render(GLFWEW::WindowRef window)
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
   renderer.AddVertices(sprPlayer);
+  for (auto i = playerBulletList.begin(); i != playerBulletList.end(); ++i) {
+    renderer.AddVertices(i->spr);
+  }
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
   window.SwapBuffers();
 }
 
+/**
+* 2つの矩形の衝突状態を調べる.
+*
+*
+* @retval true  衝突している.
+* @retval false 衝突していない.
+*/
+bool detectCollision(const Rect* lhs, const Rect* rhs)
+{
+  return
+    lhs->origin.x < rhs->origin.x + rhs->size.x &&
+    lhs->origin.x + lhs->size.x > rhs->origin.x &&
+    lhs->origin.y < rhs->origin.y + rhs->size.y &&
+    lhs->origin.y + lhs->size.y > rhs->origin.y;
+}
