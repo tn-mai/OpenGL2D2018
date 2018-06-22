@@ -96,11 +96,13 @@ void processInput(GLFWEW::WindowRef window)
   } else {
     playerVelocity.x = 0;
   }
-  if (gamepad.buttonDown & GamePad::A) {
-    playerBulletList.push_back(Actor("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16), glm::vec3(1200, 0, 0), Rect(-16, -8, 32, 16)));
-  }
   if (playerVelocity.x || playerVelocity.y) {
     playerVelocity = glm::normalize(playerVelocity) * 400.0f;
+  }
+
+  if (gamepad.buttonDown & GamePad::A) {
+    Actor actor = Actor("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16), glm::vec3(1200, 0, 0), Rect(-16, -8, 32, 16));
+    playerBulletList.push_back(actor);
   }
 }
 
