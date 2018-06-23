@@ -31,6 +31,20 @@ struct Timeline
 
 /// Timelineポインタ型.
 typedef std::shared_ptr<Timeline> TimelinePtr;
+TimelinePtr CreateTimeline(const KeyFrame* first, const KeyFrame* last);
+
+/**
+* タイムラインを作成する.
+*
+* @param array タイムラインを構成するキーフレーム配列.
+*
+* @return タイムラインオブジェクト.
+*
+* キーフレーム配列からタイムラインを作成する.
+* タイムライン中のキーフレームの順序は配列と同じになる.
+*/
+template<size_t N>
+TimelinePtr CreateTimeline(const KeyFrame (&array)[N]) { return CreateTimeline(array, array + N); }
 
 /**
 * スプライトのアニメーションを制御するクラス.
@@ -68,6 +82,7 @@ private:
 
 /// Animateポインタ型.
 typedef std::shared_ptr<Animate> AnimatePtr;
+AnimatePtr CreateAnimator(const TimelinePtr&);
 
 } // namespace FrameAnimation
 

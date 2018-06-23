@@ -9,6 +9,36 @@
 namespace FrameAnimation {
 
 /**
+* タイムラインを作成する.
+*
+* @param first タイムラインを構成するキーフレーム配列の先頭.
+* @param last  タイムラインを構成するキーフレーム配列の終端.
+*
+* @return タイムラインオブジェクト.
+*
+* キーフレーム配列[first, last)からタイムラインを作成する.
+* タイムライン中のキーフレームの順序は配列と同じになる.
+*/
+TimelinePtr CreateTimeline(const KeyFrame* first, const KeyFrame* last)
+{
+  TimelinePtr tl = std::make_shared<Timeline>();
+  tl->data.assign(first, last);
+  return tl;
+}
+
+/**
+* アニメーション制御オブジェクトを作成する.
+*
+* @param tl タイムライン.
+*
+* @return アニメーション制御オブジェクト.
+*/
+AnimatePtr CreateAnimator(const TimelinePtr& tl)
+{
+  return std::make_shared<Animate>(tl);
+}
+
+/**
 * コンストラクタ.
 *
 * tl
