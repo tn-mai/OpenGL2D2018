@@ -41,7 +41,7 @@ AnimatePtr CreateAnimator(const TimelinePtr& tl)
 /**
 * コンストラクタ.
 *
-* tl
+* @param tl タイムライン.
 */
 Animate::Animate(const TimelinePtr& tl)
   : timeline(tl)
