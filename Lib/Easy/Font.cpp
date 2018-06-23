@@ -86,7 +86,7 @@ bool Renderer::LoadFromFile(const char* filename)
 
   int line = 1;
   float fontSize;
-  int ret = fscanf(fp.get(), "info face=%*s size=%f bold=%*d italic=%*d charset=%*s"
+  int ret = fscanf(fp.get(), "info face=\"%*[^\"]\" size=%f bold=%*d italic=%*d charset=%*s"
     " unicode=%*d stretchH=%*d smooth=%*d aa=%*d padding=%*d,%*d,%*d,%*d spacing=%*d,%*d", &fontSize);
   ++line;
   const float reciprocalFontSize = 1.0f / fontSize;
