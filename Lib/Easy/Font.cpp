@@ -177,7 +177,9 @@ bool Renderer::LoadFromFile(const char* filename)
 */
 bool Renderer::AddString(const glm::vec2& position, const wchar_t* str)
 {
-  const glm::u16vec2 thicknessAndOutline = glm::vec2(0.625f - thickness * 0.375f, border) * 65535.0f;
+  if (!progFont) {
+    return false;
+  }
 
   Vertex* p = pVBO + vboSize;
   glm::vec2 pos = position;
