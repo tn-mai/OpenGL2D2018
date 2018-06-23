@@ -77,4 +77,15 @@ void Animate::Update(Sprite& target, glm::f32 delta)
   target.Rectangle({ keyframe.origin, keyframe.size });
 }
 
+/**
+* アニメーションが終了したか調べる.
+*
+* @retval true  アニメーションは終了済み.
+* @retval false アニメーション中(ループ再生が有効な場合は常にこちら).
+*/
+bool Animate::IsFinished() const
+{
+  return isLoop && (elapsedTime >= timeline->data.back().time);
+}
+
 } // namespace FrameAnimation

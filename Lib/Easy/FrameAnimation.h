@@ -68,6 +68,7 @@ public:
   void Resume() { isPause = false; }
   void Loop(bool f) { isLoop = f; }
   bool IsLoop() const { return isLoop; }
+  bool IsFinished() const;
 
   void Update(Sprite&, glm::f32);
 
