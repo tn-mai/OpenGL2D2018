@@ -15,6 +15,9 @@ const int windowHeight = 600; // ウィンドウの高さ.
 Font::Renderer fontRenderer;
 int score;
 
+FrameAnimation::TimelinePtr tlEnemy;
+FrameAnimation::TimelinePtr tlBlast;
+
 SpriteRenderer renderer;
 Sprite sprBackground; // 背景用スプライト.
 Sprite sprPlayer;     // 自機用スプライト.
@@ -25,13 +28,6 @@ glm::vec3 playerVelocity; // 自機の移動速度.
 */
 struct Actor
 {
-  Actor(const char* texname, const glm::vec3& pos, const Rect& r, const glm::vec3& vel, const Rect& col)
-  {
-    spr = Sprite(texname, pos, r);
-    velocity = vel;
-    collision = col;
-  }
-
   Sprite spr;
   glm::vec3 velocity;
   Rect collision;
@@ -39,6 +35,7 @@ struct Actor
 };
 std::list<Actor> playerBulletList;
 std::list<Actor> enemyList;
+std::list<Sprite> blastList;
 
 std::mt19937 random;
 float enemyGenerationTimer;
@@ -68,6 +65,24 @@ int main()
   random.seed(std::random_device()());
   fontRenderer.Init(1024, glm::vec2(windowWidth, windowHeight));
   fontRenderer.LoadFromFile("Res/Font/makinas_scrap.fnt");
+
+  static const FrameAnimation::KeyFrame enemyAnime[] = {
+    { 0.000f, glm::vec2(480, 0), glm::vec2(32, 32) },
+    { 0.125f, glm::vec2(480, 96), glm::vec2(32, 32) },
+    { 0.250f, glm::vec2(480, 64), glm::vec2(32, 32) },
+    { 0.375f, glm::vec2(480, 32), glm::vec2(32, 32) },
+    { 0.500f, glm::vec2(480, 0), glm::vec2(32, 32) },
+  };
+  tlEnemy = FrameAnimation::CreateTimeline(enemyAnime);
+
+  static const FrameAnimation::KeyFrame blastAnime[] = {
+    { 0.000f, glm::vec2(416,  0), glm::vec2(32, 32) },
+    { 0.125f, glm::vec2(416, 32), glm::vec2(32, 32) },
+    { 0.250f, glm::vec2(416, 64), glm::vec2(32, 32) },
+    { 0.375f, glm::vec2(416, 96), glm::vec2(32, 32) },
+    { 0.500f, glm::vec2(416, 96), glm::vec2(0, 0) },
+  };
+  tlBlast = FrameAnimation::CreateTimeline(blastAnime);
 
   // 使用する画像を用意.
   sprBackground = Sprite("Res/UnknownPlanet.png");
@@ -115,7 +130,10 @@ void processInput(GLFWEW::WindowRef window)
 
   // 弾の発射.
   if (gamepad.buttonDown & GamePad::A) {
-    Actor shot = Actor("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16), glm::vec3(1200, 0, 0), Rect(-16, -8, 32, 16));
+    Actor shot;
+    shot.spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
+    shot.velocity = glm::vec3(1200, 0, 0);
+    shot.collision = Rect(-16, -8, 32, 16);
     shot.health = 1;
     playerBulletList.push_back(shot);
   }
@@ -159,7 +177,11 @@ void update(GLFWEW::WindowRef window)
   enemyGenerationTimer -= deltaTime;
   if (enemyGenerationTimer < 0) {
     const float y = std::uniform_real_distribution<float>(-0.5f * windowHeight, 0.5f * windowHeight)(random);
-    Actor enemy = Actor("Res/Objects.png", glm::vec3(432, y, 0), Rect(480, 0, 32, 32), glm::vec3(-200, 0, 0), Rect(-16, -16, 32, 32));
+    Actor enemy;
+    enemy.spr = Sprite("Res/Objects.png", glm::vec3(432, y, 0), Rect(480, 0, 32, 32));
+    enemy.spr.Animator(FrameAnimation::CreateAnimator(tlEnemy));
+    enemy.velocity = glm::vec3(-200, 0, 0);
+    enemy.collision = Rect(-16, -16, 32, 32);
     enemy.health = 1;
     enemyList.push_back(enemy);
     enemyGenerationTimer = 2;
@@ -189,6 +211,10 @@ void update(GLFWEW::WindowRef window)
         shotRect.origin.x + shotRect.size.x > enemyRect.origin.x &&
         shotRect.origin.y < enemyRect.origin.y + enemyRect.size.y &&
         shotRect.origin.y + shotRect.size.y > enemyRect.origin.y) {
+        Sprite blast = Sprite("Res/Objects.png", enemy->spr.Position());
+        blast.Animator(FrameAnimation::CreateAnimator(tlBlast));
+        blast.Animator()->Loop(false);
+        blastList.push_back(blast);
         shot->health -= 1;
         enemy->health -= 1;
         score += 100;
@@ -196,8 +222,15 @@ void update(GLFWEW::WindowRef window)
       }
     }
   }
+
+  // 爆発の更新.
+  for (auto blast = blastList.begin(); blast != blastList.end(); ++blast) {
+    blast->Update(deltaTime);
+  }
+
   playerBulletList.remove_if([](const Actor& e) { return e.health <= 0; });
   enemyList.remove_if([](const Actor& e) { return e.health <= 0; });
+  blastList.remove_if([](const Sprite& e) { return e.Animator()->IsFinished(); });
 }
 
 /**
@@ -215,6 +248,9 @@ void render(GLFWEW::WindowRef window)
   }
   for (auto i = playerBulletList.begin(); i != playerBulletList.end(); ++i) {
     renderer.AddVertices(i->spr);
+  }
+  for (auto i = blastList.begin(); i != blastList.end(); ++i) {
+    renderer.AddVertices(*i);
   }
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
