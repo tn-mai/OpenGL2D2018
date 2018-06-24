@@ -11,6 +11,26 @@ class Node;
 
 namespace TweenAnimation {
 
+// 先行宣言.
+class Animate;
+class Tween;
+class MoveBy;
+class Sequence;
+class Parallelize;
+class Wait;
+class Rotation;
+class RemoveFromParent;
+class RemoveIfOutOfArea;
+using AnimatePtr = std::shared_ptr<Animate>;
+using TweenPtr = std::shared_ptr<Tween>;
+using MoveByPtr = std::shared_ptr<MoveBy>;
+using SequencePtr = std::shared_ptr<Sequence>;
+using ParallelizePtr = std::shared_ptr<Parallelize>;
+using WaitPtr = std::shared_ptr<Wait>;
+using RotationPtr = std::shared_ptr<Rotation>;
+using RemoveFromParentPtr = std::shared_ptr<RemoveFromParent>;
+using RemoveIfOutOfAreaPtr = std::shared_ptr<RemoveIfOutOfArea>;
+
 /**
 * イージングの種類.
 */
@@ -67,7 +87,6 @@ private:
   EasingType easing = EasingType::Linear;
   glm::u32 total = 0;
 };
-typedef std::shared_ptr<Tween> TweenPtr;
 
 /**
 * トウィーニングを制御するクラス.
@@ -75,6 +94,8 @@ typedef std::shared_ptr<Tween> TweenPtr;
 class Animate
 {
 public:
+  static AnimatePtr Create(const TweenPtr& p) { return std::make_shared<Animate>(p); }
+
   Animate() = default;
   explicit Animate(const TweenPtr& p) { Tween(p); }
   Animate(const Animate&) = delete;
@@ -99,7 +120,6 @@ private:
 
   TweenPtr tween;
 };
-typedef std::shared_ptr<Animate> AnimatePtr;
 
 /**
 * 移動アニメーション.
@@ -107,6 +127,11 @@ typedef std::shared_ptr<Animate> AnimatePtr;
 class MoveBy : public Tween
 {
 public:
+  static MoveByPtr Create(glm::f32 d, const glm::vec3& v, EasingType e = EasingType::Linear, Target t = Target::XYZ)
+  {
+    return std::make_shared<MoveBy>(d, v, e, t);
+  }
+
   MoveBy() = default;
   MoveBy(glm::f32 d, const glm::vec3& v, EasingType e = EasingType::Linear, Target t = Target::XYZ);
   MoveBy(const MoveBy&) = delete;
@@ -128,6 +153,8 @@ private:
 class Sequence : public Tween
 {
 public:
+  static SequencePtr Create(glm::u32 times) { return std::make_shared<Sequence>(times); }
+
   explicit Sequence(glm::u32 t = 1) : Tween(0.0f, EasingType::Linear, t) {}
   Sequence(const Sequence&) = delete;
   Sequence& operator=(const Sequence&) = delete;
@@ -152,6 +179,8 @@ private:
 class Parallelize : public Tween
 {
 public:
+  static ParallelizePtr Create(glm::u32 times) { return std::make_shared<Parallelize>(times); }
+
   explicit Parallelize(glm::u32 t = 1) : Tween(0.0f, EasingType::Linear, t) {}
   Parallelize(const Parallelize&) = delete;
   Parallelize& operator=(const Parallelize&) = delete;
@@ -171,6 +200,8 @@ private:
 class Wait : public TweenAnimation::Tween
 {
 public:
+  static WaitPtr Create(glm::f32 duration) { return std::make_shared<Wait>(duration); }
+
   Wait(glm::f32 d) : Tween(d, TweenAnimation::EasingType::Linear) {}
   virtual void Update(Node&, glm::f32) override {}
 };
@@ -181,6 +212,8 @@ public:
 class RemoveFromParent : public TweenAnimation::Tween
 {
 public:
+  static RemoveFromParentPtr Create() { return std::make_shared<RemoveFromParent>(); }
+
   virtual void Update(Node& node, glm::f32 elapsed) override;
 };
 
@@ -190,6 +223,8 @@ public:
 class Rotation : public Tween
 {
 public:
+  static RotationPtr Create(glm::f32 duration, glm::f32 rot, EasingType e = EasingType::Linear) { return std::make_shared<Rotation>(duration, rot, e); }
+
   Rotation(glm::f32 d, glm::f32 rot, EasingType e = EasingType::Linear) :
     Tween(d, e),
     rotation(rot)
@@ -207,8 +242,11 @@ private:
 */
 class RemoveIfOutOfArea : public TweenAnimation::Tween {
 public:
+  static RemoveIfOutOfAreaPtr Create(const glm::vec2& origin, const glm::vec2& size) { return std::make_shared<RemoveIfOutOfArea>(origin, size); }
+
   RemoveIfOutOfArea(const glm::vec2& origin, const glm::vec2& size);
   virtual void Update(Node& node, glm::f32 dt) override;
+
 private:
   glm::vec2 origin;
   glm::vec2 size;
