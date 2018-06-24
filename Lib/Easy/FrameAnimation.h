@@ -11,6 +11,12 @@ class Sprite;
 
 namespace FrameAnimation {
 
+// 先行宣言.
+struct Timeline;
+class Animate;
+using TimelinePtr = std::shared_ptr<Timeline>;
+using AnimatePtr = std::shared_ptr<Animate>;
+
 /**
 * ある瞬間にスプライトとして表示するテクスチャ内の範囲.
 */
@@ -26,12 +32,12 @@ struct KeyFrame
 */
 struct Timeline
 {
+  static TimelinePtr Create(const KeyFrame* first, const KeyFrame* last);
+  template<size_t N> static TimelinePtr Create(const KeyFrame(&array)[N]);
+
   std::vector<KeyFrame> data; ///< 時刻順に整列されているキーフレームの配列.
 };
 
-/// Timelineポインタ型.
-typedef std::shared_ptr<Timeline> TimelinePtr;
-TimelinePtr CreateTimeline(const KeyFrame* first, const KeyFrame* last);
 
 /**
 * タイムラインを作成する.
@@ -44,7 +50,7 @@ TimelinePtr CreateTimeline(const KeyFrame* first, const KeyFrame* last);
 * タイムライン中のキーフレームの順序は配列と同じになる.
 */
 template<size_t N>
-TimelinePtr CreateTimeline(const KeyFrame (&array)[N]) { return CreateTimeline(array, array + N); }
+inline TimelinePtr Timeline::Create(const KeyFrame (&array)[N]) { return Create(array, array + N); }
 
 /**
 * スプライトのアニメーションを制御するクラス.
@@ -52,6 +58,8 @@ TimelinePtr CreateTimeline(const KeyFrame (&array)[N]) { return CreateTimeline(a
 class Animate
 {
 public:
+  static AnimatePtr Create(const TimelinePtr&);
+
   Animate() = default;
   explicit Animate(const TimelinePtr&);
   ~Animate() = default;
@@ -80,10 +88,6 @@ private:
   bool isPause = false; ///< 時間経過を一時停止するかどうか.
   bool isLoop = true; ///< ループ再生を行うかどうか.
 };
-
-/// Animateポインタ型.
-typedef std::shared_ptr<Animate> AnimatePtr;
-AnimatePtr CreateAnimator(const TimelinePtr&);
 
 } // namespace FrameAnimation
 

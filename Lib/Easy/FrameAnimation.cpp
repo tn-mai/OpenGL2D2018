@@ -19,7 +19,7 @@ namespace FrameAnimation {
 * キーフレーム配列[first, last)からタイムラインを作成する.
 * タイムライン中のキーフレームの順序は配列と同じになる.
 */
-TimelinePtr CreateTimeline(const KeyFrame* first, const KeyFrame* last)
+TimelinePtr Timeline::Create(const KeyFrame* first, const KeyFrame* last)
 {
   TimelinePtr tl = std::make_shared<Timeline>();
   tl->data.assign(first, last);
@@ -33,7 +33,7 @@ TimelinePtr CreateTimeline(const KeyFrame* first, const KeyFrame* last)
 *
 * @return アニメーション制御オブジェクト.
 */
-AnimatePtr CreateAnimator(const TimelinePtr& tl)
+AnimatePtr Animate::Create(const TimelinePtr& tl)
 {
   return std::make_shared<Animate>(tl);
 }

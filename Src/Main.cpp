@@ -82,7 +82,7 @@ int main()
     { 0.375f, glm::vec2(480, 32), glm::vec2(32, 32) },
     { 0.500f, glm::vec2(480, 0), glm::vec2(32, 32) },
   };
-  tlEnemy = FrameAnimation::CreateTimeline(enemyAnime);
+  tlEnemy = FrameAnimation::Timeline::Create(enemyAnime);
 
   static const FrameAnimation::KeyFrame blastAnime[] = {
     { 0.000f, glm::vec2(416,  0), glm::vec2(32, 32) },
@@ -91,7 +91,7 @@ int main()
     { 0.375f, glm::vec2(416, 96), glm::vec2(32, 32) },
     { 0.500f, glm::vec2(416, 96), glm::vec2(0, 0) },
   };
-  tlBlast = FrameAnimation::CreateTimeline(blastAnime);
+  tlBlast = FrameAnimation::Timeline::Create(blastAnime);
 
   // Žg—p‚·‚é‰æ‘œ‚ð—pˆÓ.
   sprBackground = Sprite("Res/UnknownPlanet.png");
@@ -188,7 +188,7 @@ void update(GLFWEW::WindowRef window)
     const float y = std::uniform_real_distribution<float>(-0.5f * windowHeight, 0.5f * windowHeight)(random);
     Actor enemy;
     enemy.spr = Sprite("Res/Objects.png", glm::vec3(432, y, 0), Rect(480, 0, 32, 32));
-    enemy.spr.Animator(FrameAnimation::CreateAnimator(tlEnemy));
+    enemy.spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
     enemy.velocity = glm::vec3(-200, 0, 0);
     enemy.collision = Rect(-16, -16, 32, 32);
     enemy.health = 1;
@@ -221,7 +221,7 @@ void update(GLFWEW::WindowRef window)
         shotRect.origin.y < enemyRect.origin.y + enemyRect.size.y &&
         shotRect.origin.y + shotRect.size.y > enemyRect.origin.y) {
         Sprite blast = Sprite("Res/Objects.png", enemy->spr.Position());
-        blast.Animator(FrameAnimation::CreateAnimator(tlBlast));
+        blast.Animator(FrameAnimation::Animate::Create(tlBlast));
         blast.Animator()->Loop(false);
         blastList.push_back(blast);
         shot->health -= 1;
