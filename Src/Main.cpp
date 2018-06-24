@@ -8,38 +8,47 @@
 #include <list>
 #include <random>
 
+/**
+* ゲームキャラクター構造体.
+*/
+struct Actor
+{
+  Sprite spr; // スプライト.
+  glm::vec3 velocity; // 移動速度.
+  Rect collision; // 衝突判定の位置と大きさ.
+  int health; // 耐久力.
+};
+
+/*
+* ゲームの表示に関する変数.
+*/
 const char title[] = "OpenGL2D 2018"; // ウィンドウタイトル.
 const int windowWidth = 800; // ウィンドウの幅.
 const int windowHeight = 600; // ウィンドウの高さ.
 
-Font::Renderer fontRenderer;
-int score;
-
-FrameAnimation::TimelinePtr tlEnemy;
-FrameAnimation::TimelinePtr tlBlast;
-
-SpriteRenderer renderer;
+SpriteRenderer renderer; // スプライト描画用変数.
 Sprite sprBackground; // 背景用スプライト.
 Sprite sprPlayer;     // 自機用スプライト.
 glm::vec3 playerVelocity; // 自機の移動速度.
 
-/**
-* ゲームキャラクター.
+FrameAnimation::TimelinePtr tlEnemy; // 敵のアニメーション.
+FrameAnimation::TimelinePtr tlBlast; // 爆発のアニメーション.
+std::list<Actor> playerBulletList; // 自機の弾のリスト.
+std::list<Actor> enemyList; // 敵のリスト.
+std::list<Sprite> blastList; // 爆発のリスト.
+
+Font::Renderer fontRenderer; // フォント描画用変数.
+
+/*
+* ゲームのルールに関する変数.
 */
-struct Actor
-{
-  Sprite spr;
-  glm::vec3 velocity;
-  Rect collision;
-  int health;
-};
-std::list<Actor> playerBulletList;
-std::list<Actor> enemyList;
-std::list<Sprite> blastList;
+std::mt19937 random; // 乱数を発生させる変数(乱数エンジン).
+float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
+int score; // プレイヤーのスコア.
 
-std::mt19937 random;
-float enemyGenerationTimer;
-
+/*
+* プロトタイプ宣言.
+*/
 void processInput(GLFWEW::WindowRef);
 void update(GLFWEW::WindowRef);
 void render(GLFWEW::WindowRef);
