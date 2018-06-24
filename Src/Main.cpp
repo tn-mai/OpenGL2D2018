@@ -5,7 +5,6 @@
 #include "Texture.h"
 #include "Sprite.h"
 #include "Font.h"
-#include <list>
 #include <random>
 
 /**
@@ -30,12 +29,11 @@ SpriteRenderer renderer; // スプライト描画用変数.
 Sprite sprBackground; // 背景用スプライト.
 Sprite sprPlayer;     // 自機用スプライト.
 glm::vec3 playerVelocity; // 自機の移動速度.
-
 FrameAnimation::TimelinePtr tlEnemy; // 敵のアニメーション.
 FrameAnimation::TimelinePtr tlBlast; // 爆発のアニメーション.
-std::list<Actor> playerBulletList; // 自機の弾のリスト.
-std::list<Actor> enemyList; // 敵のリスト.
-std::list<Sprite> blastList; // 爆発のリスト.
+Actor enemyList[128]; // 敵のリスト.
+Actor playerBulletList[128]; // 自機の弾のリスト.
+Actor blastList[128]; // 爆発のリスト.
 
 Font::Renderer fontRenderer; // フォント描画用変数.
 
@@ -97,6 +95,16 @@ int main()
   sprBackground = Sprite("Res/UnknownPlanet.png");
   sprPlayer = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
 
+  for (Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
+    i->health = 0;
+  }
+  for (Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
+    i->health = 0;
+  }
+  for (Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
+    i->health = 0;
+  }
+
   // ゲームループ.
   while (!window.ShouldClose()) {
     processInput(window);
@@ -139,12 +147,17 @@ void processInput(GLFWEW::WindowRef window)
 
   // 弾の発射.
   if (gamepad.buttonDown & GamePad::A) {
-    Actor shot;
-    shot.spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
-    shot.velocity = glm::vec3(1200, 0, 0);
-    shot.collision = Rect(-16, -8, 32, 16);
-    shot.health = 1;
-    playerBulletList.push_back(shot);
+    Actor* bullet = nullptr;
+    for (Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
+      if (i->health <= 0) {
+        bullet = i;
+        break;
+      }
+    }
+    bullet->spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
+    bullet->velocity = glm::vec3(1200, 0, 0);
+    bullet->collision = Rect(-16, -8, 32, 16);
+    bullet->health = 1;
   }
 }
 
@@ -176,41 +189,58 @@ void update(GLFWEW::WindowRef window)
   sprPlayer.Update(deltaTime);
 
   // 自機の弾の移動.
-  for (auto i = playerBulletList.begin(); i != playerBulletList.end(); ++i) {
-    i->spr.Position(i->spr.Position() + i->velocity * deltaTime);
-    i->spr.Update(deltaTime);
+  for (auto bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
+    // 右端を超えたら殺す.
+    if (bullet->spr.Position().x > (0.5f * (windowWidth + bullet->spr.Rectangle().size.x))) {
+      bullet->health = 0;
+    }
+    // 生きていたら状態を更新.
+    if (bullet->health > 0) {
+      bullet->spr.Position(bullet->spr.Position() + bullet->velocity * deltaTime);
+      bullet->spr.Update(deltaTime);
+    }
   }
-  playerBulletList.remove_if([](const Actor& e) { return e.spr.Position().x > (0.5f * (windowWidth + e.spr.Rectangle().size.x)); });
 
   // 敵の出現.
   enemyGenerationTimer -= deltaTime;
   if (enemyGenerationTimer < 0) {
-    const float y = std::uniform_real_distribution<float>(-0.5f * windowHeight, 0.5f * windowHeight)(random);
-    Actor enemy;
-    enemy.spr = Sprite("Res/Objects.png", glm::vec3(432, y, 0), Rect(480, 0, 32, 32));
-    enemy.spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
-    enemy.velocity = glm::vec3(-200, 0, 0);
-    enemy.collision = Rect(-16, -16, 32, 32);
-    enemy.health = 1;
-    enemyList.push_back(enemy);
-    enemyGenerationTimer = 2;
+    Actor* enemy = nullptr;
+    for (Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
+      if (i->health <= 0) {
+        enemy = i;
+        break;
+      }
+    }
+    if (enemy) {
+      const float y = std::uniform_real_distribution<float>(-0.5f * windowHeight, 0.5f * windowHeight)(random);
+      enemy->spr = Sprite("Res/Objects.png", glm::vec3(432, y, 0), Rect(480, 0, 32, 32));
+      enemy->spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
+      enemy->velocity = glm::vec3(-200, 0, 0);
+      enemy->collision = Rect(-16, -16, 32, 32);
+      enemy->health = 1;
+      enemyGenerationTimer = 2;
+    }
   }
 
   // 敵の移動.
-  for (auto i = enemyList.begin(); i != enemyList.end(); ++i) {
-    i->spr.Position(i->spr.Position() + i->velocity * deltaTime);
-    i->spr.Update(deltaTime);
+  for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
+    enemy->spr.Position(enemy->spr.Position() + enemy->velocity * deltaTime);
+    enemy->spr.Update(deltaTime);
   }
-  enemyList.remove_if([](const Actor& e) { return e.spr.Position().x < (-0.5f * (windowWidth + e.spr.Rectangle().size.x)); });
+  for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
+    if (enemy->spr.Position().x < (-0.5f * (windowWidth + enemy->spr.Rectangle().size.x))) {
+      enemy->health = 0;
+    }
+  }
 
   // 自機の弾と敵の衝突判定.
-  for (auto shot = playerBulletList.begin(); shot != playerBulletList.end(); ++shot) {
-    if (shot->health <= 0) {
+  for (Actor* bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
+    if (bullet->health <= 0) {
       continue;
     }
-    Rect shotRect = shot->collision;
-    shotRect.origin += glm::vec2(shot->spr.Position());
-    for (auto enemy = enemyList.begin(); enemy != enemyList.end(); ++enemy) {
+    Rect shotRect = bullet->collision;
+    shotRect.origin += glm::vec2(bullet->spr.Position());
+    for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
       if (enemy->health <= 0) {
         continue;
       }
@@ -220,26 +250,35 @@ void update(GLFWEW::WindowRef window)
         shotRect.origin.x + shotRect.size.x > enemyRect.origin.x &&
         shotRect.origin.y < enemyRect.origin.y + enemyRect.size.y &&
         shotRect.origin.y + shotRect.size.y > enemyRect.origin.y) {
-        Sprite blast = Sprite("Res/Objects.png", enemy->spr.Position());
-        blast.Animator(FrameAnimation::Animate::Create(tlBlast));
-        blast.Animator()->Loop(false);
-        blastList.push_back(blast);
-        shot->health -= 1;
+        bullet->health -= 1;
         enemy->health -= 1;
         score += 100;
+        // 爆発エフェクトを発生させる.
+        Actor* blast = nullptr;
+        for (Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
+          if (i->health <= 0) {
+            blast = i;
+            break;
+          }
+        }
+        blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
+        blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
+        blast->spr.Animator()->Loop(false);
+        blast->health = 1;
         break;
       }
     }
   }
 
   // 爆発の更新.
-  for (auto blast = blastList.begin(); blast != blastList.end(); ++blast) {
-    blast->Update(deltaTime);
+  for (Actor* blast = std::begin(blastList); blast != std::end(blastList); ++blast) {
+    if (blast->health > 0) {
+      blast->spr.Update(deltaTime);
+      if (blast->spr.Animator()->IsFinished()) {
+        blast->health = 0;
+      }
+    }
   }
-
-  playerBulletList.remove_if([](const Actor& e) { return e.health <= 0; });
-  enemyList.remove_if([](const Actor& e) { return e.health <= 0; });
-  blastList.remove_if([](const Sprite& e) { return e.Animator()->IsFinished(); });
 }
 
 /**
@@ -252,14 +291,20 @@ void render(GLFWEW::WindowRef window)
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
   renderer.AddVertices(sprPlayer);
-  for (auto i = enemyList.begin(); i != enemyList.end(); ++i) {
-    renderer.AddVertices(i->spr);
+  for (const Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
+    if (i->health > 0) {
+      renderer.AddVertices(i->spr);
+    }
   }
-  for (auto i = playerBulletList.begin(); i != playerBulletList.end(); ++i) {
-    renderer.AddVertices(i->spr);
+  for (const Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
+    if (i->health > 0) {
+      renderer.AddVertices(i->spr);
+    }
   }
-  for (auto i = blastList.begin(); i != blastList.end(); ++i) {
-    renderer.AddVertices(*i);
+  for (const Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
+    if (i->health > 0) {
+      renderer.AddVertices(i->spr);
+    }
   }
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
