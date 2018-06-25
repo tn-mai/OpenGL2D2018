@@ -7,24 +7,23 @@
 #include "Font.h"
 #include <random>
 
+const char title[] = "OpenGL2D 2018"; // ウィンドウタイトル.
+const int windowWidth = 800; // ウィンドウの幅.
+const int windowHeight = 600; // ウィンドウの高さ.
+
 /**
 * ゲームキャラクター構造体.
 */
 struct Actor
 {
   Sprite spr; // スプライト.
-  glm::vec3 velocity; // 移動速度.
-  Rect collision; // 衝突判定の位置と大きさ.
+  Rect collisionShape; // 衝突判定の位置と大きさ.
   int health; // 耐久力.
 };
 
 /*
 * ゲームの表示に関する変数.
 */
-const char title[] = "OpenGL2D 2018"; // ウィンドウタイトル.
-const int windowWidth = 800; // ウィンドウの幅.
-const int windowHeight = 600; // ウィンドウの高さ.
-
 SpriteRenderer renderer; // スプライト描画用変数.
 Sprite sprBackground; // 背景用スプライト.
 Sprite sprPlayer;     // 自機用スプライト.
@@ -155,8 +154,8 @@ void processInput(GLFWEW::WindowRef window)
       }
     }
     bullet->spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
-    bullet->velocity = glm::vec3(1200, 0, 0);
-    bullet->collision = Rect(-16, -8, 32, 16);
+    bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
+    bullet->collisionShape = Rect(-16, -8, 32, 16);
     bullet->health = 1;
   }
 }
@@ -188,19 +187,6 @@ void update(GLFWEW::WindowRef window)
   }
   sprPlayer.Update(deltaTime);
 
-  // 自機の弾の移動.
-  for (auto bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
-    // 右端を超えたら殺す.
-    if (bullet->spr.Position().x > (0.5f * (windowWidth + bullet->spr.Rectangle().size.x))) {
-      bullet->health = 0;
-    }
-    // 生きていたら状態を更新.
-    if (bullet->health > 0) {
-      bullet->spr.Position(bullet->spr.Position() + bullet->velocity * deltaTime);
-      bullet->spr.Update(deltaTime);
-    }
-  }
-
   // 敵の出現.
   enemyGenerationTimer -= deltaTime;
   if (enemyGenerationTimer < 0) {
@@ -212,24 +198,34 @@ void update(GLFWEW::WindowRef window)
       }
     }
     if (enemy) {
-      const float y = std::uniform_real_distribution<float>(-0.5f * windowHeight, 0.5f * windowHeight)(random);
-      enemy->spr = Sprite("Res/Objects.png", glm::vec3(432, y, 0), Rect(480, 0, 32, 32));
+      const std::uniform_real_distribution<float> y_distribution(-0.5f * windowHeight, 0.5f * windowHeight);
+      enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y_distribution(random), 0), Rect(480, 0, 32, 32));
       enemy->spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
-      enemy->velocity = glm::vec3(-200, 0, 0);
-      enemy->collision = Rect(-16, -16, 32, 32);
+      enemy->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(5, glm::vec3(-1000, 0, 0))));
+      enemy->collisionShape = Rect(-16, -16, 32, 32);
       enemy->health = 1;
       enemyGenerationTimer = 2;
     }
   }
 
-  // 敵の移動.
+  // 敵の更新.
   for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
-    enemy->spr.Position(enemy->spr.Position() + enemy->velocity * deltaTime);
-    enemy->spr.Update(deltaTime);
+    if (enemy->health > 0) {
+      enemy->spr.Update(deltaTime);
+      if (enemy->spr.Tweener()->IsFinished()) {
+        enemy->health = 0;
+      }
+    }
   }
-  for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
-    if (enemy->spr.Position().x < (-0.5f * (windowWidth + enemy->spr.Rectangle().size.x))) {
-      enemy->health = 0;
+
+  // 自機の弾の更新.
+  for (auto bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
+    // 生きていたら状態を更新.
+    if (bullet->health > 0) {
+      bullet->spr.Update(deltaTime);
+      if (bullet->spr.Tweener()->IsFinished()) {
+        bullet->health = 0;
+      }
     }
   }
 
@@ -238,18 +234,15 @@ void update(GLFWEW::WindowRef window)
     if (bullet->health <= 0) {
       continue;
     }
-    Rect shotRect = bullet->collision;
+    Rect shotRect = bullet->collisionShape;
     shotRect.origin += glm::vec2(bullet->spr.Position());
     for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
       if (enemy->health <= 0) {
         continue;
       }
-      Rect enemyRect = enemy->collision;
+      Rect enemyRect = enemy->collisionShape;
       enemyRect.origin += glm::vec2(enemy->spr.Position());
-      if (shotRect.origin.x < enemyRect.origin.x + enemyRect.size.x &&
-        shotRect.origin.x + shotRect.size.x > enemyRect.origin.x &&
-        shotRect.origin.y < enemyRect.origin.y + enemyRect.size.y &&
-        shotRect.origin.y + shotRect.size.y > enemyRect.origin.y) {
+      if (detectCollision(&shotRect, &enemyRect)) {
         bullet->health -= 1;
         enemy->health -= 1;
         score += 100;
@@ -325,8 +318,10 @@ void render(GLFWEW::WindowRef window)
 }
 
 /**
-* 2つの矩形の衝突状態を調べる.
+* 2つの長方形の衝突状態を調べる.
 *
+* @param lhs 長方形その1.
+* @param rhs 長方形その2.
 *
 * @retval true  衝突している.
 * @retval false 衝突していない.
