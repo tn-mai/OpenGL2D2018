@@ -109,6 +109,7 @@ public:
   void Resume() { isPause = false; }
   void Loop(bool f) { isLoop = f; }
   bool IsLoop() const { return isLoop; }
+  bool IsFinished() const { return !tween || (!isLoop && elapsed >= tween->TotalDuration()); }
 
   void Update(Node&, glm::f32);
 
@@ -116,7 +117,7 @@ private:
   glm::f32 elapsed = 0.0f; ///< 経過時間.
   bool isInitialized = false;
   bool isPause = false; ///< 時間経過を一時停止するかどうか.
-  bool isLoop = true; ///< ループ再生を行うかどうか.
+  bool isLoop = false; ///< ループ再生を行うかどうか.
 
   TweenPtr tween;
 };
