@@ -60,6 +60,26 @@ void Tween::UpdateWithEasing(Node& node, glm::f32 elapsed)
     }
     ratio *= 0.5f;
     break;
+  case EasingType::EaseOutBack: {
+    static const float scale = 1.70158f * 1.525f;
+    ratio -= 1;
+    ratio = 1 + 2.70158f * ratio * ratio * ratio + 1.70158f * ratio * ratio;
+    break;
+  }
+  case EasingType::EaseOutBounce:
+    if (ratio < (1 / 2.75f)) {
+      ratio = 7.5625f * ratio * ratio;
+    } else if (ratio < (2 / 2.75f)) {
+      ratio -= 1.5f / 2.75f;
+      ratio = 7.5625f * ratio * ratio + 0.75f;
+    } else if (ratio < (2.5 / 2.75f)) {
+      ratio -= 2.25f / 2.75f;
+      ratio = 7.5625f * ratio * ratio + 0.9375f;
+    } else {
+      ratio -= 2.625f / 2.75f;
+      ratio = 7.5625f * ratio * ratio + 0.984375f;
+    }
+    break;
   }
   Update(node, UnitDuration() * ratio);
 }

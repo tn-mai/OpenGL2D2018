@@ -39,6 +39,8 @@ enum class EasingType {
   EaseIn, ///< ‰Á‘¬.
   EaseOut, ///< Œ¸‘¬.
   EaseInOut, ///< ‰Á‘¬+Œ¸‘¬.
+  EaseOutBack, ///< Œ¸‘¬(­‚µs‚«‰ß‚¬‚Ä‚©‚ç–ß‚Á‚Ä‚«‚Ä’âŽ~).
+  EaseOutBounce, ///< Œ¸‘¬(I“_‚Å‰½“x‚©’e‚ñ‚Å‚©‚ç’âŽ~).
 };
 
 /**
