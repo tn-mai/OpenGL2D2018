@@ -156,7 +156,7 @@ private:
 class Sequence : public Tween
 {
 public:
-  static SequencePtr Create(glm::u32 times) { return std::make_shared<Sequence>(times); }
+  static SequencePtr Create(glm::u32 times = 1) { return std::make_shared<Sequence>(times); }
 
   explicit Sequence(glm::u32 t = 1) : Tween(0.0f, EasingType::Linear, t) {}
   Sequence(const Sequence&) = delete;
@@ -182,7 +182,7 @@ private:
 class Parallelize : public Tween
 {
 public:
-  static ParallelizePtr Create(glm::u32 times) { return std::make_shared<Parallelize>(times); }
+  static ParallelizePtr Create(glm::u32 times = 1) { return std::make_shared<Parallelize>(times); }
 
   explicit Parallelize(glm::u32 t = 1) : Tween(0.0f, EasingType::Linear, t) {}
   Parallelize(const Parallelize&) = delete;
