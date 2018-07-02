@@ -5,6 +5,7 @@
 #include "Texture.h"
 #include "Sprite.h"
 #include "Font.h"
+#include "TiledMap.h"
 #include <random>
 
 const char title[] = "OpenGL2D 2018"; // ウィンドウタイトル.
@@ -35,6 +36,10 @@ Actor playerBulletList[128]; // 自機の弾のリスト.
 Actor blastList[128]; // 爆発のリスト.
 
 Font::Renderer fontRenderer; // フォント描画用変数.
+
+TiledMap mapData; // マップ.
+float mapCurrentPosX;
+float mapProcessedX;
 
 /*
 * ゲームのルールに関する変数.
@@ -103,6 +108,10 @@ int main()
   for (Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
     i->health = 0;
   }
+
+  // 敵配置マップを読み込む.
+  mapData.Load("Res/EnemyMap.json");
+  mapCurrentPosX = mapProcessedX = 800;
 
   // ゲームループ.
   while (!window.ShouldClose()) {
@@ -188,6 +197,43 @@ void update(GLFWEW::WindowRef window)
   sprPlayer.Update(deltaTime);
 
   // 敵の出現.
+#if 1
+  mapCurrentPosX += 100 * deltaTime;
+  const TiledMap::Layer& tiledMapLayer = mapData.GetLayer(0);
+  if (mapCurrentPosX >= tiledMapLayer.size.x * 32) {
+    mapCurrentPosX = static_cast<float>(tiledMapLayer.size.x * 32 - 1);
+  }
+  if (mapCurrentPosX - mapProcessedX >= 32) {
+    mapProcessedX += 32;
+    const int baseOffset = static_cast<int>(mapProcessedX / 32.0f);
+    for (int i = 0; i < tiledMapLayer.size.y; ++i) {
+      if (tiledMapLayer.At(i, baseOffset) == 256) {
+        Actor* enemy = nullptr;
+        for (Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
+          if (i->health <= 0) {
+            enemy = i;
+            break;
+          }
+        }
+        if (enemy) {
+          const float y = windowHeight * 0.5f - static_cast<float>(i * 32);
+          enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y, 0), Rect(480, 0, 32, 32));
+          enemy->spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
+          TweenAnimation::ParallelizePtr par = TweenAnimation::Parallelize::Create(1);
+          TweenAnimation::SequencePtr seq = TweenAnimation::Sequence::Create(4);
+          seq->Add(TweenAnimation::MoveBy::Create(1, glm::vec3(0, 100, 0), TweenAnimation::EasingType::EaseInOut, TweenAnimation::Target::Y));
+          seq->Add(TweenAnimation::MoveBy::Create(1, glm::vec3(0, -100, 0), TweenAnimation::EasingType::EaseInOut, TweenAnimation::Target::Y));
+          par->Add(seq);
+          par->Add(TweenAnimation::MoveBy::Create(8, glm::vec3(-1000, 0, 0), TweenAnimation::EasingType::Linear, TweenAnimation::Target::X));
+          enemy->spr.Tweener(TweenAnimation::Animate::Create(par));
+          enemy->collisionShape = Rect(-16, -16, 32, 32);
+          enemy->health = 1;
+          enemyGenerationTimer = 2;
+        }
+      }
+    }
+  }
+#else
   enemyGenerationTimer -= deltaTime;
   if (enemyGenerationTimer < 0) {
     Actor* enemy = nullptr;
@@ -207,6 +253,7 @@ void update(GLFWEW::WindowRef window)
       enemyGenerationTimer = 2;
     }
   }
+#endif
 
   // 敵の更新.
   for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
