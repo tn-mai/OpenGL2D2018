@@ -24,10 +24,12 @@
     <ClCompile Include="Lib\Easy\Font.cpp" />
     <ClCompile Include="Lib\Easy\FrameAnimation.cpp" />
     <ClCompile Include="Lib\Easy\GLFWEW.cpp" />
+    <ClCompile Include="Lib\Easy\Json.cpp" />
     <ClCompile Include="Lib\Easy\Node.cpp" />
     <ClCompile Include="Lib\Easy\Shader.cpp" />
     <ClCompile Include="Lib\Easy\Sprite.cpp" />
     <ClCompile Include="Lib\Easy\Texture.cpp" />
+    <ClCompile Include="Lib\Easy\TiledMap.cpp" />
     <ClCompile Include="Lib\Easy\TweenAnimation.cpp" />
     <ClCompile Include="Lib\Easy\UniformBuffer.cpp" />
     <ClCompile Include="Src\Main.cpp" />
@@ -40,10 +42,12 @@
     <ClInclude Include="Lib\Easy\FrameAnimation.h" />
     <ClInclude Include="Lib\Easy\GamePad.h" />
     <ClInclude Include="Lib\Easy\GLFWEW.h" />
+    <ClInclude Include="Lib\Easy\Json.h" />
     <ClInclude Include="Lib\Easy\Node.h" />
     <ClInclude Include="Lib\Easy\Shader.h" />
     <ClInclude Include="Lib\Easy\Sprite.h" />
     <ClInclude Include="Lib\Easy\Texture.h" />
+    <ClInclude Include="Lib\Easy\TiledMap.h" />
     <ClInclude Include="Lib\Easy\TweenAnimation.h" />
     <ClInclude Include="Lib\Easy\UniformBuffer.h" />
   </ItemGroup>

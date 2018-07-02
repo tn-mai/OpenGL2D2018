@@ -53,6 +53,12 @@
     <ClCompile Include="Lib\Easy\UniformBuffer.cpp">
       <Filter>Lib\Easy</Filter>
     </ClCompile>
+    <ClCompile Include="Lib\Easy\Json.cpp">
+      <Filter>Lib\Easy</Filter>
+    </ClCompile>
+    <ClCompile Include="Lib\Easy\TiledMap.cpp">
+      <Filter>Lib\Easy</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lib\Easy\Audio.h">
@@ -92,6 +98,12 @@
       <Filter>Lib\Easy</Filter>
     </ClInclude>
     <ClInclude Include="Lib\Easy\UniformBuffer.h">
+      <Filter>Lib\Easy</Filter>
+    </ClInclude>
+    <ClInclude Include="Lib\Easy\Json.h">
+      <Filter>Lib\Easy</Filter>
+    </ClInclude>
+    <ClInclude Include="Lib\Easy\TiledMap.h">
       <Filter>Lib\Easy</Filter>
     </ClInclude>
   </ItemGroup>
