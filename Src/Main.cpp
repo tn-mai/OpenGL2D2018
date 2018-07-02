@@ -54,7 +54,8 @@ static const FrameAnimation::KeyFrame blastKeyFrames[] = {
 };
 FrameAnimation::TimelinePtr tlBlast;
 
-TiledMap mapData; // マップ.
+// 敵の出現を制御するためのデータ.
+TiledMap enemyMap;
 float mapCurrentPosX;
 float mapProcessedX;
 
@@ -120,8 +121,8 @@ int main()
   score = 0;
 
   // 敵配置マップを読み込む.
-  mapData.Load("Res/EnemyMap.json");
-  mapCurrentPosX = mapProcessedX = 800;
+  enemyMap.Load("Res/EnemyMap.json");
+  mapCurrentPosX = mapProcessedX = windowWidth;
 
   // ゲームループ.
   while (!window.ShouldClose()) {
@@ -208,16 +209,23 @@ void update(GLFWEW::WindowRef window)
 
   // 敵の出現.
 #if 1
-  mapCurrentPosX += 100 * deltaTime;
-  const TiledMap::Layer& tiledMapLayer = mapData.GetLayer(0);
-  if (mapCurrentPosX >= tiledMapLayer.size.x * 32) {
-    mapCurrentPosX = static_cast<float>(tiledMapLayer.size.x * 32 - 1);
+  const TiledMap::Layer& tiledMapLayer = enemyMap.GetLayer(0);
+  const glm::vec2 tileSize = enemyMap.GetTileSet(tiledMapLayer.tilesetNo).size;
+  // 敵配置マップ参照位置の更新.
+  const float enemyMapScrollSpeed = 100; // 更新速度.
+  mapCurrentPosX += enemyMapScrollSpeed * deltaTime;
+  if (mapCurrentPosX >= tiledMapLayer.size.x * tileSize.x) {
+    // 終端を超えたら先頭にループ.
+    mapCurrentPosX = 0;
+    mapProcessedX = 0;
   }
-  if (mapCurrentPosX - mapProcessedX >= 32) {
-    mapProcessedX += 32;
-    const int baseOffset = static_cast<int>(mapProcessedX / 32.0f);
-    for (int i = 0; i < tiledMapLayer.size.y; ++i) {
-      if (tiledMapLayer.At(i, baseOffset) == 256) {
+  // 次の列に到達したらデータを読む.
+  if (mapCurrentPosX - mapProcessedX >= tileSize.x) {
+    mapProcessedX += tileSize.x;
+    const int mapX = static_cast<int>(mapProcessedX / tileSize.x);
+    for (int mapY = 0; mapY < tiledMapLayer.size.y; ++mapY) {
+      const int enemyId = 256; // 敵とみなすタイルID.
+      if (tiledMapLayer.At(mapY, mapX) == enemyId) {
         Actor* enemy = nullptr;
         for (Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
           if (i->health <= 0) {
@@ -226,7 +234,7 @@ void update(GLFWEW::WindowRef window)
           }
         }
         if (enemy != nullptr) {
-          const float y = windowHeight * 0.5f - static_cast<float>(i * 32);
+          const float y = windowHeight * 0.5f - static_cast<float>(mapY * tileSize.x);
           enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y, 0), Rect(480, 0, 32, 32));
           enemy->spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
           namespace TA = TweenAnimation;
@@ -239,7 +247,6 @@ void update(GLFWEW::WindowRef window)
           enemy->spr.Tweener(TA::Animate::Create(par));
           enemy->collisionShape = Rect(-16, -16, 32, 32);
           enemy->health = 1;
-          enemyGenerationTimer = 2;
         }
       }
     }
