@@ -88,6 +88,7 @@ public:
   SpriteRenderer& operator=(const SpriteRenderer&) = delete;
 
   bool Initialize(size_t maxSpriteCount);
+  void Finalize();
   void Update(const Node&);
   void Draw(const glm::vec2&) const;
   void ClearDrawData();
@@ -95,6 +96,9 @@ public:
   void BeginUpdate();
   bool AddVertices(const Sprite&);
   void EndUpdate();
+
+  const glm::vec3& CameraPosition() const { return cameraPos; }
+  void CameraPosition(const glm::vec3& pos) { cameraPos = pos; }
 
 private:
   void MakeNodeList(const Node&, std::vector<const Node*>&);
@@ -113,6 +117,8 @@ private:
     TexturePtr texture;
   };
   std::vector<DrawData> drawDataList;
+
+  glm::vec3 cameraPos;
 };
 
 #endif // SPRITE_H_INCLUDED

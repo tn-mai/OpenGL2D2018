@@ -213,18 +213,7 @@ void Sprite::Draw(SpriteRenderer& renderer) const
 */
 SpriteRenderer::~SpriteRenderer()
 {
-  if (shaderProgram) {
-    glDeleteProgram(shaderProgram);
-  }
-  if (vao) {
-    glDeleteVertexArrays(1, &vao);
-  }
-  if (ibo) {
-    glDeleteBuffers(1, &ibo);
-  }
-  if (vbo) {
-    glDeleteBuffers(1, &vbo);
-  }
+  Finalize();
 }
 
 /**
@@ -237,6 +226,11 @@ SpriteRenderer::~SpriteRenderer()
 */
 bool SpriteRenderer::Initialize(size_t maxSpriteCount)
 {
+  if (maxSpriteCount == vboCapacity / 4) {
+    return true; // 初期化済み.
+  }
+  Finalize();
+
   vbo = CreateVBO(sizeof(Vertex) * maxSpriteCount * 4, nullptr);
   std::vector<GLushort> indices;
   indices.resize(maxSpriteCount * 6);
@@ -255,8 +249,33 @@ bool SpriteRenderer::Initialize(size_t maxSpriteCount)
     return false;
   }
 
+  vboSize = 0;
+  pVBO = nullptr;
   vboCapacity = static_cast<GLsizei>(4 * maxSpriteCount);
   return true;
+}
+
+/**
+* スプライト描画クラスを終了させる.
+*
+* Initialize()で初期化したデータを破棄し、初期化前の状態に戻す.
+* この関数を呼出したあと、再びInitialize()を呼び出して初期化し直すことができる.
+*/
+void SpriteRenderer::Finalize()
+{
+  drawDataList.clear();
+  if (shaderProgram) {
+    glDeleteProgram(shaderProgram);
+  }
+  if (vao) {
+    glDeleteVertexArrays(1, &vao);
+  }
+  if (ibo) {
+    glDeleteBuffers(1, &ibo);
+  }
+  if (vbo) {
+    glDeleteBuffers(1, &vbo);
+  }
 }
 
 /**
@@ -264,6 +283,9 @@ bool SpriteRenderer::Initialize(size_t maxSpriteCount)
 */
 void SpriteRenderer::BeginUpdate()
 {
+  if (!vbo || pVBO) {
+    return;
+  }
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
   pVBO = static_cast<Vertex*>(glMapBufferRange(GL_ARRAY_BUFFER, 0, sizeof(Vertex) * vboCapacity, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT));
   vboSize = 0;
@@ -337,6 +359,9 @@ bool SpriteRenderer::AddVertices(const Sprite& sprite)
 */
 void SpriteRenderer::EndUpdate()
 {
+  if (!pVBO) {
+    return;
+  }
   glUnmapBuffer(GL_ARRAY_BUFFER);
   glBindBuffer(GL_ARRAY_BUFFER, 0);
   pVBO = nullptr;
@@ -386,6 +411,10 @@ void SpriteRenderer::MakeNodeList(const Node& node, std::vector<const Node*>& no
 */
 void SpriteRenderer::Draw(const glm::vec2& screenSize) const
 {
+  if (drawDataList.empty()) {
+    return;
+  }
+
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -396,7 +425,7 @@ void SpriteRenderer::Draw(const glm::vec2& screenSize) const
   if (matMVPLoc >= 0) {
     const glm::mat4x4 matProj = glm::ortho(-screenSize.x * 0.5f, screenSize.x * 0.5f, -screenSize.y * 0.5f, screenSize.y * 0.5f, 200.0f, 1200.0f);
     //const glm::mat4x4 matProj = glm::perspective(glm::radians(45.0f), screenSize.x / screenSize.y, 200.0f, 1200.0f);
-    const glm::mat4x4 matView = glm::lookAt(glm::vec3(0, 0, glm::tan(glm::radians(90.0f - 22.5f)) * screenSize.y * 0.5f), glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
+    const glm::mat4x4 matView = glm::lookAt(glm::vec3(cameraPos.x, cameraPos.y, glm::tan(glm::radians(90.0f - 22.5f)) * screenSize.y * 0.5f), cameraPos, glm::vec3(0, 1, 0));
     const glm::mat4x4 matMVP = matProj * matView;
     glUniformMatrix4fv(matMVPLoc, 1, GL_FALSE, &matMVP[0][0]);
   }
