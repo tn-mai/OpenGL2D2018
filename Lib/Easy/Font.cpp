@@ -32,7 +32,7 @@ struct Vertex
 * @retval true  初期化成功.
 * @retval false 初期化失敗.
 */
-bool Renderer::Init(size_t maxChar, const glm::vec2& screen)
+bool Renderer::Initialize(size_t maxChar, const glm::vec2& screen)
 {
   if (maxChar > (USHRT_MAX + 1) / 4) {
     std::cerr << "WARNING: " << maxChar << "は設定可能な最大文字数を越えています"<< std::endl;
@@ -175,6 +175,26 @@ bool Renderer::LoadFromFile(const char* filename)
 * @retval true  追加成功.
 * @retval false 追加失敗.
 */
+bool Renderer::AddString(const glm::vec2& position, const char* str)
+{
+  if (!progFont) {
+    return false;
+  }
+  std::wstring tmp;
+  tmp.resize(strlen(str) + 1);
+  mbstowcs(&tmp[0], str, tmp.size());
+  return AddString(position, tmp.c_str());
+}
+
+/**
+* 文字列を追加する.
+*
+* @param position 表示開始座標.
+* @param str      追加する文字列.
+*
+* @retval true  追加成功.
+* @retval false 追加失敗.
+*/
 bool Renderer::AddString(const glm::vec2& position, const wchar_t* str)
 {
   if (!progFont) {
@@ -279,7 +299,7 @@ glm::vec4 Renderer::SubColor() const
 /**
 * VBOをシステムメモリにマッピングする.
 */
-void Renderer::MapBuffer()
+void Renderer::BeginUpdate()
 {
   if (pVBO) {
     return;
@@ -297,7 +317,7 @@ void Renderer::MapBuffer()
 /**
 * VBOのマッピングを解除する.
 */
-void Renderer::UnmapBuffer()
+void Renderer::EndUpdate()
 {
   if (!pVBO || vboSize == 0) {
     return;

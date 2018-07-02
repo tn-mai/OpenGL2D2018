@@ -35,7 +35,7 @@ public:
   Renderer(const Renderer&) = delete;
   Renderer& operator=(const Renderer&) = delete;
 
-  bool Init(size_t maxChar, const glm::vec2& ss);
+  bool Initialize(size_t maxChar, const glm::vec2& ss);
   bool LoadFromFile(const char* filename);
   void Scale(const glm::vec2& s) { scale = s; }
   const glm::vec2& Scale() const { return scale; }
@@ -51,9 +51,10 @@ public:
   bool Propotional() const { return propotional; }
   void XAdvance(float x) { fixedAdvance = x; }
 
+  bool AddString(const glm::vec2& position, const char* str);
   bool AddString(const glm::vec2& position, const wchar_t* str);
-  void MapBuffer();
-  void UnmapBuffer();
+  void BeginUpdate();
+  void EndUpdate();
   void Draw() const;
 
 private:
@@ -79,5 +80,7 @@ private:
 };
 
 } // namespace Font
+
+using FontRenderer = Font::Renderer;
 
 #endif // FONT_H_INCLUDED

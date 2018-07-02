@@ -26,16 +26,33 @@ struct Actor
 * ゲームの表示に関する変数.
 */
 SpriteRenderer renderer; // スプライト描画用変数.
+FontRenderer fontRenderer; // フォント描画用変数.
 Sprite sprBackground; // 背景用スプライト.
 Sprite sprPlayer;     // 自機用スプライト.
 glm::vec3 playerVelocity; // 自機の移動速度.
-FrameAnimation::TimelinePtr tlEnemy; // 敵のアニメーション.
-FrameAnimation::TimelinePtr tlBlast; // 爆発のアニメーション.
 Actor enemyList[128]; // 敵のリスト.
 Actor playerBulletList[128]; // 自機の弾のリスト.
 Actor blastList[128]; // 爆発のリスト.
 
-Font::Renderer fontRenderer; // フォント描画用変数.
+// 敵のアニメーション.
+const FrameAnimation::KeyFrame enemyKeyFrames[] = {
+  { 0.000f, glm::vec2(480, 0), glm::vec2(32, 32) },
+  { 0.125f, glm::vec2(480, 96), glm::vec2(32, 32) },
+  { 0.250f, glm::vec2(480, 64), glm::vec2(32, 32) },
+  { 0.375f, glm::vec2(480, 32), glm::vec2(32, 32) },
+  { 0.500f, glm::vec2(480, 0), glm::vec2(32, 32) },
+};
+FrameAnimation::TimelinePtr tlEnemy;
+
+// 爆発のアニメーション.
+static const FrameAnimation::KeyFrame blastKeyFrames[] = {
+  { 0.000f, glm::vec2(416,  0), glm::vec2(32, 32) },
+  { 0.125f, glm::vec2(416, 32), glm::vec2(32, 32) },
+  { 0.250f, glm::vec2(416, 64), glm::vec2(32, 32) },
+  { 0.375f, glm::vec2(416, 96), glm::vec2(32, 32) },
+  { 0.500f, glm::vec2(416, 96), glm::vec2(0, 0) },
+};
+FrameAnimation::TimelinePtr tlBlast;
 
 TiledMap mapData; // マップ.
 float mapCurrentPosX;
@@ -72,28 +89,17 @@ int main()
   if (!renderer.Initialize(1024)) {
     return 1;
   }
+  if (!fontRenderer.Initialize(1024, glm::vec2(windowWidth, windowHeight))) {
+    return 1;
+  }
+  if (!fontRenderer.LoadFromFile("Res/Font/makinas_scrap.fnt")) {
+    return 1;
+  }
 
-  random.seed(std::random_device()());
-  fontRenderer.Init(1024, glm::vec2(windowWidth, windowHeight));
-  fontRenderer.LoadFromFile("Res/Font/makinas_scrap.fnt");
+  random.seed(std::random_device()()); // 乱数エンジンの初期化.
 
-  static const FrameAnimation::KeyFrame enemyAnime[] = {
-    { 0.000f, glm::vec2(480, 0), glm::vec2(32, 32) },
-    { 0.125f, glm::vec2(480, 96), glm::vec2(32, 32) },
-    { 0.250f, glm::vec2(480, 64), glm::vec2(32, 32) },
-    { 0.375f, glm::vec2(480, 32), glm::vec2(32, 32) },
-    { 0.500f, glm::vec2(480, 0), glm::vec2(32, 32) },
-  };
-  tlEnemy = FrameAnimation::Timeline::Create(enemyAnime);
-
-  static const FrameAnimation::KeyFrame blastAnime[] = {
-    { 0.000f, glm::vec2(416,  0), glm::vec2(32, 32) },
-    { 0.125f, glm::vec2(416, 32), glm::vec2(32, 32) },
-    { 0.250f, glm::vec2(416, 64), glm::vec2(32, 32) },
-    { 0.375f, glm::vec2(416, 96), glm::vec2(32, 32) },
-    { 0.500f, glm::vec2(416, 96), glm::vec2(0, 0) },
-  };
-  tlBlast = FrameAnimation::Timeline::Create(blastAnime);
+  tlEnemy = FrameAnimation::Timeline::Create(enemyKeyFrames);
+  tlBlast = FrameAnimation::Timeline::Create(blastKeyFrames);
 
   // 使用する画像を用意.
   sprBackground = Sprite("Res/UnknownPlanet.png");
@@ -105,9 +111,13 @@ int main()
   for (Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
     i->health = 0;
   }
+  enemyGenerationTimer = 2;
+
   for (Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
     i->health = 0;
   }
+
+  score = 0;
 
   // 敵配置マップを読み込む.
   mapData.Load("Res/EnemyMap.json");
@@ -215,17 +225,18 @@ void update(GLFWEW::WindowRef window)
             break;
           }
         }
-        if (enemy) {
+        if (enemy != nullptr) {
           const float y = windowHeight * 0.5f - static_cast<float>(i * 32);
           enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y, 0), Rect(480, 0, 32, 32));
           enemy->spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
-          TweenAnimation::ParallelizePtr par = TweenAnimation::Parallelize::Create(1);
-          TweenAnimation::SequencePtr seq = TweenAnimation::Sequence::Create(4);
-          seq->Add(TweenAnimation::MoveBy::Create(1, glm::vec3(0, 100, 0), TweenAnimation::EasingType::EaseInOut, TweenAnimation::Target::Y));
-          seq->Add(TweenAnimation::MoveBy::Create(1, glm::vec3(0, -100, 0), TweenAnimation::EasingType::EaseInOut, TweenAnimation::Target::Y));
+          namespace TA = TweenAnimation;
+          TA::SequencePtr seq = TA::Sequence::Create(4);
+          seq->Add(TA::MoveBy::Create(1, glm::vec3(0, 100, 0), TA::EasingType::EaseInOut, TA::Target::Y));
+          seq->Add(TA::MoveBy::Create(1, glm::vec3(0, -100, 0), TA::EasingType::EaseInOut, TA::Target::Y));
+          TA::ParallelizePtr par = TA::Parallelize::Create(1);
           par->Add(seq);
-          par->Add(TweenAnimation::MoveBy::Create(8, glm::vec3(-1000, 0, 0), TweenAnimation::EasingType::Linear, TweenAnimation::Target::X));
-          enemy->spr.Tweener(TweenAnimation::Animate::Create(par));
+          par->Add(TA::MoveBy::Create(8, glm::vec3(-1000, 0, 0), TA::EasingType::Linear, TA::Target::X));
+          enemy->spr.Tweener(TA::Animate::Create(par));
           enemy->collisionShape = Rect(-16, -16, 32, 32);
           enemy->health = 1;
           enemyGenerationTimer = 2;
@@ -243,11 +254,15 @@ void update(GLFWEW::WindowRef window)
         break;
       }
     }
-    if (enemy) {
+    if (enemy != nullptr) {
       const std::uniform_real_distribution<float> y_distribution(-0.5f * windowHeight, 0.5f * windowHeight);
       enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y_distribution(random), 0), Rect(480, 0, 32, 32));
       enemy->spr.Animator(FrameAnimation::Animate::Create(tlEnemy));
-      enemy->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(5, glm::vec3(-1000, 0, 0))));
+      namespace TA = TweenAnimation;
+      TA::SequencePtr seq = TA::Sequence::Create(2);
+      seq->Add(TA::MoveBy::Create(1, glm::vec3(-200, 100, 0), TA::EasingType::Linear));
+      seq->Add(TA::MoveBy::Create(1, glm::vec3(-200, -100, 0), TA::EasingType::Linear));
+      enemy->spr.Tweener(TweenAnimation::Animate::Create(seq));
       enemy->collisionShape = Rect(-16, -16, 32, 32);
       enemy->health = 1;
       enemyGenerationTimer = 2;
@@ -349,16 +364,11 @@ void render(GLFWEW::WindowRef window)
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
 
-  fontRenderer.MapBuffer();
-  std::wstring str;
-  str.resize(8);
-  int n = score;
-  for (int i = 7; i >= 0; --i) {
-    str[i] = L'0' + (n % 10);
-    n /= 10;
-  }
-  fontRenderer.AddString(glm::vec2(-64 , 300), str.c_str());
-  fontRenderer.UnmapBuffer();
+  fontRenderer.BeginUpdate();
+  char str[9];
+  snprintf(str, 9, "%08d", score);
+  fontRenderer.AddString(glm::vec2(-64 , 300), str);
+  fontRenderer.EndUpdate();
   fontRenderer.Draw();
 
   window.SwapBuffers();
