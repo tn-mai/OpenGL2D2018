@@ -62,6 +62,9 @@ void processInput(GLFWEW::WindowRef);
 void update(GLFWEW::WindowRef);
 void render(GLFWEW::WindowRef);
 bool detectCollision(const Rect* lhs, const Rect* rhs);
+void InitializeActorList(Actor*, Actor*);
+Actor* FindAvailableActor(Actor*, Actor*);
+void RenderActorList(SpriteRenderer* renderer, const Actor* first, const Actor* last);
 
 /**
 * プログラムのエントリーポイント.
@@ -94,12 +97,8 @@ int main()
   sprBackground = Sprite("Res/UnknownPlanet.png");
   sprPlayer = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
 
-  for (Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
-    i->health = 0;
-  }
-  for (Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
-    i->health = 0;
-  }
+  InitializeActorList(std::begin(enemyList), std::end(enemyList));
+  InitializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
   enemyGenerationTimer = 2;
 
   score = 0;
@@ -150,17 +149,13 @@ void processInput(GLFWEW::WindowRef window)
 
   // 弾の発射.
   if (gamepad.buttonDown & GamePad::A) {
-    Actor* bullet = nullptr;
-    for (Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
-      if (i->health <= 0) {
-        bullet = i;
-        break;
-      }
+    Actor* bullet = FindAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
+    if (bullet != nullptr) {
+      bullet->spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
+      bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
+      bullet->collisionShape = Rect(-16, -8, 32, 16);
+      bullet->health = 1;
     }
-    bullet->spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
-    bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
-    bullet->collisionShape = Rect(-16, -8, 32, 16);
-    bullet->health = 1;
   }
 }
 
@@ -210,13 +205,7 @@ void update(GLFWEW::WindowRef window)
     for (int mapY = 0; mapY < tiledMapLayer.size.y; ++mapY) {
       const int enemyId = 256; // 敵とみなすタイルID.
       if (tiledMapLayer.At(mapY, mapX) == enemyId) {
-        Actor* enemy = nullptr;
-        for (Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
-          if (i->health <= 0) {
-            enemy = i;
-            break;
-          }
-        }
+        Actor* enemy = FindAvailableActor(std::begin(enemyList), std::end(enemyList));
         if (enemy != nullptr) {
           const float y = windowHeight * 0.5f - static_cast<float>(mapY * tileSize.x);
           enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y, 0), Rect(480, 0, 32, 32));
@@ -238,13 +227,7 @@ void update(GLFWEW::WindowRef window)
 #else
   enemyGenerationTimer -= deltaTime;
   if (enemyGenerationTimer < 0) {
-    Actor* enemy = nullptr;
-    for (Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
-      if (i->health <= 0) {
-        enemy = i;
-        break;
-      }
-    }
+    Actor* enemy = FindAvailableActor(std::begin(enemyList), std::end(enemyList));
     if (enemy != nullptr) {
       const std::uniform_real_distribution<float> y_distribution(-0.5f * windowHeight, 0.5f * windowHeight);
       enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y_distribution(random), 0), Rect(480, 0, 32, 32));
@@ -315,16 +298,8 @@ void render(GLFWEW::WindowRef window)
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
   renderer.AddVertices(sprPlayer);
-  for (const Actor* i = std::begin(enemyList); i != std::end(enemyList); ++i) {
-    if (i->health > 0) {
-      renderer.AddVertices(i->spr);
-    }
-  }
-  for (const Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
-    if (i->health > 0) {
-      renderer.AddVertices(i->spr);
-    }
-  }
+  RenderActorList(&renderer, std::begin(enemyList), std::end(enemyList));
+  RenderActorList(&renderer, std::begin(playerBulletList), std::end(playerBulletList));
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
 
@@ -354,4 +329,53 @@ bool detectCollision(const Rect* lhs, const Rect* rhs)
     lhs->origin.x + lhs->size.x > rhs->origin.x &&
     lhs->origin.y < rhs->origin.y + rhs->size.y &&
     lhs->origin.y + lhs->size.y > rhs->origin.y;
+}
+
+/**
+* Actorの配列を初期化する.
+*
+* @param first 初期化対象の先頭要素のポインタ.
+* @param last  初期化対象の終端要素のポインタ.
+*/
+void InitializeActorList(Actor* first, Actor* last)
+{
+  for (Actor* i = first; i != last; ++i) {
+    i->health = 0;
+  }
+}
+
+/**
+* 利用可能なのActorを取得する.
+*
+* @param first 検索対象の先頭要素のポインタ.
+* @param last  検索対象の終端要素のポインタ.
+*
+* @return 利用可能なActorのポインタ.
+*         利用可能なActorが見つからなければnullptr.
+*
+* [first, last)の範囲から、利用可能な(healthが0以下の)Actorを検索する.
+*/
+Actor* FindAvailableActor(Actor* first, Actor* last)
+{
+  for (Actor* i = first; i != last; ++i) {
+    if (i->health <= 0) {
+      return i;
+    }
+  }
+  return nullptr;
+}
+
+/**
+* Actorの配列を描画する.
+*
+* @param first 描画対象の先頭要素のポインタ.
+* @param last  描画対象の終端要素のポインタ.
+*/
+void RenderActorList(SpriteRenderer* renderer, const Actor* first, const Actor* last)
+{
+  for (const Actor* i = first; i != last; ++i) {
+    if (i->health > 0) {
+      renderer->AddVertices(i->spr);
+    }
+  }
 }
