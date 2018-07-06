@@ -66,6 +66,7 @@ bool Renderer::Initialize(size_t maxChar, const glm::vec2& screen)
   }
 
   reciprocalScreenSize = 2.0f / screen;
+  setlocale(LC_CTYPE, "JPN");
   return true;
 }
 
