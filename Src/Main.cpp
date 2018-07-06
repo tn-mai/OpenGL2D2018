@@ -32,7 +32,6 @@ Sprite sprPlayer;     // 自機用スプライト.
 glm::vec3 playerVelocity; // 自機の移動速度.
 Actor enemyList[128]; // 敵のリスト.
 Actor playerBulletList[128]; // 自機の弾のリスト.
-Actor blastList[128]; // 爆発のリスト.
 
 // 敵のアニメーション.
 const FrameAnimation::KeyFrame enemyKeyFrames[] = {
@@ -43,16 +42,6 @@ const FrameAnimation::KeyFrame enemyKeyFrames[] = {
   { 0.500f, glm::vec2(480, 0), glm::vec2(32, 32) },
 };
 FrameAnimation::TimelinePtr tlEnemy;
-
-// 爆発のアニメーション.
-static const FrameAnimation::KeyFrame blastKeyFrames[] = {
-  { 0.000f, glm::vec2(416,  0), glm::vec2(32, 32) },
-  { 0.125f, glm::vec2(416, 32), glm::vec2(32, 32) },
-  { 0.250f, glm::vec2(416, 64), glm::vec2(32, 32) },
-  { 0.375f, glm::vec2(416, 96), glm::vec2(32, 32) },
-  { 0.500f, glm::vec2(416, 96), glm::vec2(0, 0) },
-};
-FrameAnimation::TimelinePtr tlBlast;
 
 // 敵の出現を制御するためのデータ.
 TiledMap enemyMap;
@@ -100,7 +89,6 @@ int main()
   random.seed(std::random_device()()); // 乱数エンジンの初期化.
 
   tlEnemy = FrameAnimation::Timeline::Create(enemyKeyFrames);
-  tlBlast = FrameAnimation::Timeline::Create(blastKeyFrames);
 
   // 使用する画像を用意.
   sprBackground = Sprite("Res/UnknownPlanet.png");
@@ -113,10 +101,6 @@ int main()
     i->health = 0;
   }
   enemyGenerationTimer = 2;
-
-  for (Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
-    i->health = 0;
-  }
 
   score = 0;
 
@@ -315,29 +299,7 @@ void update(GLFWEW::WindowRef window)
         bullet->health -= 1;
         enemy->health -= 1;
         score += 100;
-        // 爆発エフェクトを発生させる.
-        Actor* blast = nullptr;
-        for (Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
-          if (i->health <= 0) {
-            blast = i;
-            break;
-          }
-        }
-        blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
-        blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
-        blast->spr.Animator()->Loop(false);
-        blast->health = 1;
         break;
-      }
-    }
-  }
-
-  // 爆発の更新.
-  for (Actor* blast = std::begin(blastList); blast != std::end(blastList); ++blast) {
-    if (blast->health > 0) {
-      blast->spr.Update(deltaTime);
-      if (blast->spr.Animator()->IsFinished()) {
-        blast->health = 0;
       }
     }
   }
@@ -359,11 +321,6 @@ void render(GLFWEW::WindowRef window)
     }
   }
   for (const Actor* i = std::begin(playerBulletList); i != std::end(playerBulletList); ++i) {
-    if (i->health > 0) {
-      renderer.AddVertices(i->spr);
-    }
-  }
-  for (const Actor* i = std::begin(blastList); i != std::end(blastList); ++i) {
     if (i->health > 0) {
       renderer.AddVertices(i->spr);
     }
