@@ -409,9 +409,11 @@ GLuint LoadDDS(const char* filename, const struct stat& st, const uint8_t* buf, 
       break;
     case MAKE_FOURCC('B', 'C', '4', 'U'):
       iformat = GL_COMPRESSED_RED_RGTC1;
+      blockSize = 8;
       break;
     case MAKE_FOURCC('B', 'C', '4', 'S'):
       iformat = GL_COMPRESSED_SIGNED_RED_RGTC1;
+      blockSize = 8;
       break;
     case MAKE_FOURCC('B', 'C', '5', 'U'):
       iformat = GL_COMPRESSED_RG_RGTC2;
@@ -429,8 +431,8 @@ GLuint LoadDDS(const char* filename, const struct stat& st, const uint8_t* buf, 
       case DXGI_FORMAT_BC1_UNORM_SRGB: iformat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT; blockSize = 8; break;
       case DXGI_FORMAT_BC2_UNORM_SRGB: iformat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT; break;
       case DXGI_FORMAT_BC3_UNORM_SRGB: iformat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT; break;
-      case DXGI_FORMAT_BC4_UNORM: iformat = GL_COMPRESSED_RED_RGTC1; break;
-      case DXGI_FORMAT_BC4_SNORM: iformat = GL_COMPRESSED_SIGNED_RED_RGTC1; break;
+      case DXGI_FORMAT_BC4_UNORM: iformat = GL_COMPRESSED_RED_RGTC1; blockSize = 8; break;
+      case DXGI_FORMAT_BC4_SNORM: iformat = GL_COMPRESSED_SIGNED_RED_RGTC1; blockSize = 8; break;
       case DXGI_FORMAT_BC5_UNORM: iformat = GL_COMPRESSED_RG_RGTC2; break;
       case DXGI_FORMAT_BC5_SNORM: iformat = GL_COMPRESSED_SIGNED_RG_RGTC2; break;
       case DXGI_FORMAT_BC6H_UF16: iformat = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT; break;
