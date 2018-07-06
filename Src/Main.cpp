@@ -62,10 +62,10 @@ void processInput(GLFWEW::WindowRef);
 void update(GLFWEW::WindowRef);
 void render(GLFWEW::WindowRef);
 bool detectCollision(const Rect* lhs, const Rect* rhs);
-void InitializeActorList(Actor*, Actor*);
-Actor* FindAvailableActor(Actor*, Actor*);
-void UpdateActorList(Actor*, Actor*, float deltaTime);
-void RenderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
+void initializeActorList(Actor*, Actor*);
+Actor* findAvailableActor(Actor*, Actor*);
+void updateActorList(Actor*, Actor*, float deltaTime);
+void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
 /**
 * プログラムのエントリーポイント.
@@ -98,8 +98,8 @@ int main()
   sprBackground = Sprite("Res/UnknownPlanet.png");
   sprPlayer = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
 
-  InitializeActorList(std::begin(enemyList), std::end(enemyList));
-  InitializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
+  initializeActorList(std::begin(enemyList), std::end(enemyList));
+  initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
   enemyGenerationTimer = 2;
 
   score = 0;
@@ -150,7 +150,7 @@ void processInput(GLFWEW::WindowRef window)
 
   // 弾の発射.
   if (gamepad.buttonDown & GamePad::A) {
-    Actor* bullet = FindAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
+    Actor* bullet = findAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
     if (bullet != nullptr) {
       bullet->spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
       bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
@@ -206,7 +206,7 @@ void update(GLFWEW::WindowRef window)
     for (int mapY = 0; mapY < tiledMapLayer.size.y; ++mapY) {
       const int enemyId = 256; // 敵とみなすタイルID.
       if (tiledMapLayer.At(mapY, mapX) == enemyId) {
-        Actor* enemy = FindAvailableActor(std::begin(enemyList), std::end(enemyList));
+        Actor* enemy = findAvailableActor(std::begin(enemyList), std::end(enemyList));
         if (enemy != nullptr) {
           const float y = windowHeight * 0.5f - static_cast<float>(mapY * tileSize.x);
           enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y, 0), Rect(480, 0, 32, 32));
@@ -246,8 +246,8 @@ void update(GLFWEW::WindowRef window)
 #endif
 
   // Actorの更新.
-  UpdateActorList(std::begin(enemyList), std::end(enemyList), deltaTime);
-  UpdateActorList(std::begin(playerBulletList), std::end(playerBulletList), deltaTime);
+  updateActorList(std::begin(enemyList), std::end(enemyList), deltaTime);
+  updateActorList(std::begin(playerBulletList), std::end(playerBulletList), deltaTime);
 
   // 自機の弾と敵の衝突判定.
   for (Actor* bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
@@ -282,8 +282,8 @@ void render(GLFWEW::WindowRef window)
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
   renderer.AddVertices(sprPlayer);
-  RenderActorList(std::begin(enemyList), std::end(enemyList), &renderer);
-  RenderActorList(std::begin(playerBulletList), std::end(playerBulletList), &renderer);
+  renderActorList(std::begin(enemyList), std::end(enemyList), &renderer);
+  renderActorList(std::begin(playerBulletList), std::end(playerBulletList), &renderer);
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
 
@@ -321,7 +321,7 @@ bool detectCollision(const Rect* lhs, const Rect* rhs)
 * @param first 初期化対象の先頭要素のポインタ.
 * @param last  初期化対象の終端要素のポインタ.
 */
-void InitializeActorList(Actor* first, Actor* last)
+void initializeActorList(Actor* first, Actor* last)
 {
   for (Actor* i = first; i != last; ++i) {
     i->health = 0;
@@ -339,7 +339,7 @@ void InitializeActorList(Actor* first, Actor* last)
 *
 * [first, last)の範囲から、利用可能な(healthが0以下の)Actorを検索する.
 */
-Actor* FindAvailableActor(Actor* first, Actor* last)
+Actor* findAvailableActor(Actor* first, Actor* last)
 {
   for (Actor* i = first; i != last; ++i) {
     if (i->health <= 0) {
@@ -356,7 +356,7 @@ Actor* FindAvailableActor(Actor* first, Actor* last)
 * @param last      更新対象の終端要素のポインタ.
 * @param deltaTime 前回の更新からの経過時間.
 */
-void UpdateActorList(Actor* first, Actor* last, float deltaTime)
+void updateActorList(Actor* first, Actor* last, float deltaTime)
 {
   for (Actor* i = first; i != last; ++i) {
     if (i->health > 0) {
@@ -375,7 +375,7 @@ void UpdateActorList(Actor* first, Actor* last, float deltaTime)
 * @param last     描画対象の終端要素のポインタ.
 " @param renderer スプライト描画用の変数.
 */
-void RenderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer)
+void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer)
 {
   for (const Actor* i = first; i != last; ++i) {
     if (i->health > 0) {
