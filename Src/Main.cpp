@@ -64,7 +64,8 @@ void render(GLFWEW::WindowRef);
 bool detectCollision(const Rect* lhs, const Rect* rhs);
 void InitializeActorList(Actor*, Actor*);
 Actor* FindAvailableActor(Actor*, Actor*);
-void RenderActorList(SpriteRenderer* renderer, const Actor* first, const Actor* last);
+void UpdateActorList(Actor*, Actor*, float deltaTime);
+void RenderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
 /**
 * プログラムのエントリーポイント.
@@ -244,26 +245,9 @@ void update(GLFWEW::WindowRef window)
   }
 #endif
 
-  // 敵の更新.
-  for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
-    if (enemy->health > 0) {
-      enemy->spr.Update(deltaTime);
-      if (enemy->spr.Tweener()->IsFinished()) {
-        enemy->health = 0;
-      }
-    }
-  }
-
-  // 自機の弾の更新.
-  for (auto bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
-    // 生きていたら状態を更新.
-    if (bullet->health > 0) {
-      bullet->spr.Update(deltaTime);
-      if (bullet->spr.Tweener()->IsFinished()) {
-        bullet->health = 0;
-      }
-    }
-  }
+  // Actorの更新.
+  UpdateActorList(std::begin(enemyList), std::end(enemyList), deltaTime);
+  UpdateActorList(std::begin(playerBulletList), std::end(playerBulletList), deltaTime);
 
   // 自機の弾と敵の衝突判定.
   for (Actor* bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
@@ -298,8 +282,8 @@ void render(GLFWEW::WindowRef window)
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
   renderer.AddVertices(sprPlayer);
-  RenderActorList(&renderer, std::begin(enemyList), std::end(enemyList));
-  RenderActorList(&renderer, std::begin(playerBulletList), std::end(playerBulletList));
+  RenderActorList(std::begin(enemyList), std::end(enemyList), &renderer);
+  RenderActorList(std::begin(playerBulletList), std::end(playerBulletList), &renderer);
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
 
@@ -366,12 +350,32 @@ Actor* FindAvailableActor(Actor* first, Actor* last)
 }
 
 /**
+* Actorの配列を更新する.
+*
+* @param first     更新対象の先頭要素のポインタ.
+* @param last      更新対象の終端要素のポインタ.
+* @param deltaTime 前回の更新からの経過時間.
+*/
+void UpdateActorList(Actor* first, Actor* last, float deltaTime)
+{
+  for (Actor* i = first; i != last; ++i) {
+    if (i->health > 0) {
+      i->spr.Update(deltaTime);
+      if (i->spr.Tweener()->IsFinished()) {
+        i->health = 0;
+      }
+    }
+  }
+}
+
+/**
 * Actorの配列を描画する.
 *
-* @param first 描画対象の先頭要素のポインタ.
-* @param last  描画対象の終端要素のポインタ.
+* @param first    描画対象の先頭要素のポインタ.
+* @param last     描画対象の終端要素のポインタ.
+" @param renderer スプライト描画用の変数.
 */
-void RenderActorList(SpriteRenderer* renderer, const Actor* first, const Actor* last)
+void RenderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer)
 {
   for (const Actor* i = first; i != last; ++i) {
     if (i->health > 0) {
