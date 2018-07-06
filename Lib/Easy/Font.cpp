@@ -87,12 +87,12 @@ bool Renderer::LoadFromFile(const char* filename)
   int line = 1;
   float fontSize;
   int ret = fscanf(fp.get(), "info face=\"%*[^\"]\" size=%f bold=%*d italic=%*d charset=%*s"
-    " unicode=%*d stretchH=%*d smooth=%*d aa=%*d padding=%*d,%*d,%*d,%*d spacing=%*d,%*d", &fontSize);
+    " unicode=%*d stretchH=%*d smooth=%*d aa=%*d padding=%*d,%*d,%*d,%*d spacing=%*d,%*d%*[^\r\n]", &fontSize);
   ++line;
   const float reciprocalFontSize = 1.0f / fontSize;
 
   glm::vec2 scale;
-  ret = fscanf(fp.get(), " common lineHeight=%*d base=%*d scaleW=%f scaleH=%f pages=%*d packed=%*d", &scale.x, &scale.y);
+  ret = fscanf(fp.get(), " common lineHeight=%*d base=%*d scaleW=%f scaleH=%f pages=%*d packed=%*d%*[^\r\n]", &scale.x, &scale.y);
   if (ret < 2) {
     std::cerr << "ERROR: '" << filename << "'‚Ì“Ç‚Ýž‚Ý‚ÉŽ¸”s(line=" << line << ")" << std::endl;
     return false;
@@ -137,8 +137,8 @@ bool Renderer::LoadFromFile(const char* filename)
   for (int i = 0; i < charCount; ++i) {
     FontInfo font;
     glm::vec2 uv;
-    ret = fscanf(fp.get(), " char id=%d x=%f y=%f width=%f height=%f xoffset=%f yoffset=%f xadvance=%f page=%*d chnl=%*d", &font.id, &uv.x, &uv.y, &font.size.x, &font.size.y, &font.offset.x, &font.offset.y, &font.xadvance);
-    if (ret < 8) {
+    ret = fscanf(fp.get(), " char id=%d x=%f y=%f width=%f height=%f xoffset=%f yoffset=%f xadvance=%f page=%d chnl=%*d", &font.id, &uv.x, &uv.y, &font.size.x, &font.size.y, &font.offset.x, &font.offset.y, &font.xadvance, &font.page);
+    if (ret < 9) {
       std::cerr << "ERROR: '" << filename << "'‚Ì“Ç‚Ýž‚Ý‚ÉŽ¸”s(line=" << line << ")" << std::endl;
       return false;
     }
