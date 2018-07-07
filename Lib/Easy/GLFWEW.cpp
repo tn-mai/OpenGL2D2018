@@ -108,6 +108,12 @@ bool Window::Initialize(int w, int h, const char* title)
   std::cout << "Renderer: " << renderer << std::endl;
   const GLubyte* version = glGetString(GL_VERSION);
   std::cout << "Version: " << version << std::endl;
+  GLint maxTextureImageUnits;
+  glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &maxTextureImageUnits);
+  std::cout << "Max Texture Image Units: " << maxTextureImageUnits << std::endl;
+  GLint maxTextureSize;
+  glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxTextureSize);
+  std::cout << "Max Texture Size: " << maxTextureSize << std::endl;
   isInitialized = true;
   return true;
 }
