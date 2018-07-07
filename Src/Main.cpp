@@ -28,7 +28,7 @@ struct Actor
 SpriteRenderer renderer; // スプライト描画用変数.
 FontRenderer fontRenderer; // フォント描画用変数.
 Sprite sprBackground; // 背景用スプライト.
-Sprite sprPlayer;     // 自機用スプライト.
+Actor sprPlayer;     // 自機用スプライト.
 glm::vec3 playerVelocity; // 自機の移動速度.
 Actor enemyList[128]; // 敵のリスト.
 Actor playerBulletList[128]; // 自機の弾のリスト.
@@ -96,7 +96,7 @@ int main()
 
   // 使用する画像を用意.
   sprBackground = Sprite("Res/UnknownPlanet.png");
-  sprPlayer = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
+  sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
 
   initializeActorList(std::begin(enemyList), std::end(enemyList));
   initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
@@ -152,7 +152,7 @@ void processInput(GLFWEW::WindowRef window)
   if (gamepad.buttonDown & GamePad::A) {
     Actor* bullet = findAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
     if (bullet != nullptr) {
-      bullet->spr = Sprite("Res/Objects.png", sprPlayer.Position(), Rect(64, 0, 32, 16));
+      bullet->spr = Sprite("Res/Objects.png", sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
       bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
       bullet->collisionShape = Rect(-16, -8, 32, 16);
       bullet->health = 1;
@@ -171,8 +171,8 @@ void update(GLFWEW::WindowRef window)
 
   // 自機の移動.
   if (playerVelocity.x || playerVelocity.y) {
-    glm::vec3 newPos = sprPlayer.Position() + playerVelocity * deltaTime;
-    const Rect playerRect = sprPlayer.Rectangle();
+    glm::vec3 newPos = sprPlayer.spr.Position() + playerVelocity * deltaTime;
+    const Rect playerRect = sprPlayer.spr.Rectangle();
     if (newPos.x < -0.5f * (windowWidth - playerRect.size.x)) {
       newPos.x = -0.5f * (windowWidth - playerRect.size.x);
     } else if (newPos.x > 0.5f * (windowWidth - playerRect.size.x)) {
@@ -183,9 +183,9 @@ void update(GLFWEW::WindowRef window)
     } else if (newPos.y > 0.5f * (windowHeight - playerRect.size.y)) {
       newPos.y = 0.5f * (windowHeight - playerRect.size.y);
     }
-    sprPlayer.Position(newPos);
+    sprPlayer.spr.Position(newPos);
   }
-  sprPlayer.Update(deltaTime);
+  sprPlayer.spr.Update(deltaTime);
 
   // 敵の出現.
 #if 1
@@ -281,7 +281,7 @@ void render(GLFWEW::WindowRef window)
 {
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
-  renderer.AddVertices(sprPlayer);
+  renderer.AddVertices(sprPlayer.spr);
   renderActorList(std::begin(enemyList), std::end(enemyList), &renderer);
   renderActorList(std::begin(playerBulletList), std::end(playerBulletList), &renderer);
   renderer.EndUpdate();
