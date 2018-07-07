@@ -67,6 +67,8 @@ Actor* findAvailableActor(Actor*, Actor*);
 void updateActorList(Actor*, Actor*, float deltaTime);
 void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
+bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
+
 /**
 * プログラムのエントリーポイント.
 */
@@ -263,10 +265,9 @@ void update(GLFWEW::WindowRef window)
       Rect enemyRect = enemy->collisionShape;
       enemyRect.origin += glm::vec2(enemy->spr.Position());
       if (detectCollision(&shotRect, &enemyRect)) {
-        bullet->health -= 1;
-        enemy->health -= 1;
-        score += 100;
-        break;
+        if (playerBulletAndEnemyContactHandler(bullet, enemy)) {
+          break;
+        }
       }
     }
   }
@@ -382,4 +383,23 @@ void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* rend
       renderer->AddVertices(i->spr);
     }
   }
+}
+
+/**
+* 自機の弾と敵の衝突を処理する.
+*
+* @param bullet 自機の弾のポインタ.
+* @param enemy  敵のポインタ.
+*
+* @retval true  弾の衝突処理を終了する.
+* @retval false 弾の衝突処理を継続する.
+*/
+bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
+{
+  bullet->health -= 1;
+  enemy->health -= 1;
+  if (enemy->health <= 0) {
+    score += 100;
+  }
+  return bullet->health <= 0;
 }
