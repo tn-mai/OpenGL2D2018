@@ -79,6 +79,8 @@ Actor* findAvailableActor(Actor*, Actor*);
 void updateActorList(Actor*, Actor*, float deltaTime);
 void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
+using CollisionHandlerType = bool(*)(Actor*, Actor*);
+void collisionDetection(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
 bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
 
 /**
@@ -267,25 +269,10 @@ void update(GLFWEW::WindowRef window)
   updateActorList(std::begin(effectList), std::end(effectList), deltaTime);
 
   // Ž©‹@‚Ì’e‚Æ“G‚ÌÕ“Ë”»’è.
-  for (Actor* bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
-    if (bullet->health <= 0) {
-      continue;
-    }
-    Rect shotRect = bullet->collisionShape;
-    shotRect.origin += glm::vec2(bullet->spr.Position());
-    for (Actor* enemy = std::begin(enemyList); enemy != std::end(enemyList); ++enemy) {
-      if (enemy->health <= 0) {
-        continue;
-      }
-      Rect enemyRect = enemy->collisionShape;
-      enemyRect.origin += glm::vec2(enemy->spr.Position());
-      if (detectCollision(&shotRect, &enemyRect)) {
-        if (playerBulletAndEnemyContactHandler(bullet, enemy)) {
-          break;
-        }
-      }
-    }
-  }
+  collisionDetection(
+    std::begin(playerBulletList), std::end(playerBulletList),
+    std::begin(enemyList), std::end(enemyList),
+    playerBulletAndEnemyContactHandler);
 }
 
 /**
@@ -426,4 +413,32 @@ bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
     }
   }
   return bullet->health <= 0;
+}
+
+using CollisionHandlerType = bool(*)(Actor*, Actor*);
+
+/**
+* Õ“Ë”»’è.
+*/
+void collisionDetection(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function)
+{
+  for (Actor* bullet = first0; bullet != last0; ++bullet) {
+    if (bullet->health <= 0) {
+      continue;
+    }
+    Rect shotRect = bullet->collisionShape;
+    shotRect.origin += glm::vec2(bullet->spr.Position());
+    for (Actor* enemy = first1; enemy != last1; ++enemy) {
+      if (enemy->health <= 0) {
+        continue;
+      }
+      Rect enemyRect = enemy->collisionShape;
+      enemyRect.origin += glm::vec2(enemy->spr.Position());
+      if (detectCollision(&shotRect, &enemyRect)) {
+        if (function(bullet, enemy)) {
+          break;
+        }
+      }
+    }
+  }
 }
