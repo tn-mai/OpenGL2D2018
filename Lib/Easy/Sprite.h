@@ -60,7 +60,7 @@ public:
   void ColorMode(BlendMode mode) { colorMode = mode; }
   BlendMode ColorMode() const { return colorMode; }
 
-  void Animator(const FrameAnimation::AnimatePtr& anm) { animator = anm; }
+  void Animator(const FrameAnimation::AnimatePtr& p);
   const FrameAnimation::AnimatePtr& Animator() const { return animator; }
 
   virtual void Update(glm::f32) override;

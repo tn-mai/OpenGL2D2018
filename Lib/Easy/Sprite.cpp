@@ -199,6 +199,20 @@ void Sprite::Update(glm::f32 dt)
 }
 
 /**
+* フレームアニメーションオブジェクトを設定する.
+*
+* @param p フレームアニメーションオブジェクトへのポインタ.
+*          フレームアニメーションを解除するにはnullptrを指定する.
+*/
+void Sprite::Animator(const FrameAnimation::AnimatePtr& p)
+{
+  animator = p;
+  if (animator) {
+    animator->Update(*this, 0);
+  }
+}
+
+/**
 * スプライトを描画する.
 *
 * @param 描画を行うレンダラー.
