@@ -80,7 +80,7 @@ void updateActorList(Actor*, Actor*, float deltaTime);
 void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
 using CollisionHandlerType = void(*)(Actor*, Actor*);
-void collisionDetection(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
+void detectCollision(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
 void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
 void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
 
@@ -276,13 +276,13 @@ void update(GLFWEW::WindowRef window)
   updateActorList(std::begin(effectList), std::end(effectList), deltaTime);
 
   // Ž©‹@‚Ì’e‚Æ“G‚ÌÕ“Ë”»’è.
-  collisionDetection(
+  detectCollision(
     std::begin(playerBulletList), std::end(playerBulletList),
     std::begin(enemyList), std::end(enemyList),
     playerBulletAndEnemyContactHandler);
 
   // Ž©‹@‚Æ“G‚ÌÕ“Ë”»’è.
-  collisionDetection(
+  detectCollision(
     &sprPlayer, &sprPlayer + 1,
     std::begin(enemyList), std::end(enemyList),
     playerAndEnemyContactHandler
@@ -469,7 +469,7 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
 /**
 * Õ“Ë”»’è.
 */
-void collisionDetection(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, CollisionHandlerType function)
+void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, CollisionHandlerType function)
 {
   for (Actor* a = firstA; a != lastA; ++a) {
     if (a->health <= 0) {
