@@ -6,6 +6,7 @@
 #include "Sprite.h"
 #include "Font.h"
 #include "TiledMap.h"
+#include <glm/gtc/constants.hpp>
 #include <random>
 
 const char title[] = "OpenGL2D 2018"; // ウィンドウタイトル.
@@ -32,6 +33,7 @@ Actor sprPlayer;     // 自機用スプライト.
 glm::vec3 playerVelocity; // 自機の移動速度.
 Actor enemyList[128]; // 敵のリスト.
 Actor playerBulletList[128]; // 自機の弾のリスト.
+Actor effectList[128]; // 爆発などの特殊効果用スプライトのリスト.
 
 // 敵のアニメーション.
 const FrameAnimation::KeyFrame enemyKeyFrames[] = {
@@ -42,6 +44,16 @@ const FrameAnimation::KeyFrame enemyKeyFrames[] = {
   { 0.500f, glm::vec2(480, 0), glm::vec2(32, 32) },
 };
 FrameAnimation::TimelinePtr tlEnemy;
+
+// 爆発アニメーション.
+const FrameAnimation::KeyFrame blastKeyFrames[] = {
+  { 0 / 60.0f, glm::vec2(416, 0), glm::vec2(32, 32) },
+  { 5 / 60.0f, glm::vec2(416, 32), glm::vec2(32, 32) },
+  { 10 / 60.0f, glm::vec2(416, 64), glm::vec2(32, 32) },
+  { 15 / 60.0f, glm::vec2(416, 96), glm::vec2(32, 32) },
+  { 20 / 60.0f, glm::vec2(416, 96), glm::vec2(32, 32) },
+};
+FrameAnimation::TimelinePtr tlBlast;
 
 // 敵の出現を制御するためのデータ.
 TiledMap enemyMap;
@@ -95,6 +107,7 @@ int main()
   random.seed(std::random_device()()); // 乱数エンジンの初期化.
 
   tlEnemy = FrameAnimation::Timeline::Create(enemyKeyFrames);
+  tlBlast = FrameAnimation::Timeline::Create(blastKeyFrames);
 
   // 使用する画像を用意.
   sprBackground = Sprite("Res/UnknownPlanet.png");
@@ -102,6 +115,7 @@ int main()
 
   initializeActorList(std::begin(enemyList), std::end(enemyList));
   initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
+  initializeActorList(std::begin(effectList), std::end(effectList));
   enemyGenerationTimer = 2;
 
   score = 0;
@@ -250,6 +264,7 @@ void update(GLFWEW::WindowRef window)
   // Actorの更新.
   updateActorList(std::begin(enemyList), std::end(enemyList), deltaTime);
   updateActorList(std::begin(playerBulletList), std::end(playerBulletList), deltaTime);
+  updateActorList(std::begin(effectList), std::end(effectList), deltaTime);
 
   // 自機の弾と敵の衝突判定.
   for (Actor* bullet = std::begin(playerBulletList); bullet != std::end(playerBulletList); ++bullet) {
@@ -285,6 +300,7 @@ void render(GLFWEW::WindowRef window)
   renderer.AddVertices(sprPlayer.spr);
   renderActorList(std::begin(enemyList), std::end(enemyList), &renderer);
   renderActorList(std::begin(playerBulletList), std::end(playerBulletList), &renderer);
+  renderActorList(std::begin(effectList), std::end(effectList), &renderer);
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
 
@@ -400,6 +416,14 @@ bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
   enemy->health -= 1;
   if (enemy->health <= 0) {
     score += 100;
+    Actor* blast = findAvailableActor(std::begin(effectList), std::end(effectList));
+    if (blast != nullptr) {
+      blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
+      blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
+      namespace TA = TweenAnimation;
+      blast->spr.Tweener(TA::Animate::Create(TA::Rotation::Create(20 / 60.0f, glm::pi<float>() * 0.5f)));
+      blast->health = 1;
+    }
   }
   return bullet->health <= 0;
 }
