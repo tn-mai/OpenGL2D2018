@@ -79,10 +79,10 @@ Actor* findAvailableActor(Actor*, Actor*);
 void updateActorList(Actor*, Actor*, float deltaTime);
 void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
-using CollisionHandlerType = bool(*)(Actor*, Actor*);
+using CollisionHandlerType = void(*)(Actor*, Actor*);
 void collisionDetection(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
-bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
-bool playerAndEnemyContactHandler(Actor * player, Actor * enemy);
+void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
+void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
 
 /**
 * プログラムのエントリーポイント.
@@ -409,11 +409,8 @@ void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* rend
 *
 * @param bullet 自機の弾のポインタ.
 * @param enemy  敵のポインタ.
-*
-* @retval true  弾の衝突処理を終了する.
-* @retval false 弾の衝突処理を継続する.
 */
-bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
+void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
 {
   bullet->health -= 1;
   enemy->health -= 1;
@@ -428,7 +425,6 @@ bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
       blast->health = 1;
     }
   }
-  return bullet->health <= 0;
 }
 
 /**
@@ -436,11 +432,8 @@ bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
 *
 * @param bullet 自機のポインタ.
 * @param enemy  敵のポインタ.
-*
-* @retval true  弾の衝突処理を終了する.
-* @retval false 弾の衝突処理を継続する.
 */
-bool playerAndEnemyContactHandler(Actor * player, Actor * enemy)
+void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
 {
   if (player->health > enemy->health) {
     player->health -= enemy->health;
@@ -471,7 +464,6 @@ bool playerAndEnemyContactHandler(Actor * player, Actor * enemy)
       blast->health = 1;
     }
   }
-  return player->health <= 0;
 }
 
 /**
@@ -492,7 +484,8 @@ void collisionDetection(Actor* first0, Actor* last0, Actor* first1, Actor* last1
       Rect enemyRect = enemy->collisionShape;
       enemyRect.origin += glm::vec2(enemy->spr.Position());
       if (detectCollision(&shotRect, &enemyRect)) {
-        if (function(bullet, enemy)) {
+        function(bullet, enemy);
+        if (bullet->health <= 0) {
           break;
         }
       }
