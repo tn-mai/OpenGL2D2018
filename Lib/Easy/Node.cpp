@@ -106,6 +106,20 @@ void Node::Update(float dt)
 }
 
 /**
+* トウィーニングオブジェクトを設定する.
+*
+* @param p トウィーニングオブジェクトへのポインタ.
+*          トウィーニングを解除するにはnullptrを指定する.
+*/
+void Node::Tweener(const TweenAnimation::AnimatePtr& p)
+{
+  tweener = p;
+  if (tweener) {
+    tweener->Update(*this, 0);
+  }
+}
+
+/**
 * ノードを描画する.
 *
 * @param 描画を行うレンダラー.

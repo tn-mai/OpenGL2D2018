@@ -59,7 +59,7 @@ public:
   void UpdateTransform();
   virtual void Update(float dt);
 
-  void Tweener(const TweenAnimation::AnimatePtr& p) { tweener = p; }
+  void Tweener(const TweenAnimation::AnimatePtr& p);
   const TweenAnimation::AnimatePtr& Tweener() const { return tweener; }
 
 private:
