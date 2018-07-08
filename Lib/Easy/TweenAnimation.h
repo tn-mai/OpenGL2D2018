@@ -19,6 +19,7 @@ class Sequence;
 class Parallelize;
 class Wait;
 class Rotation;
+class Scaling;
 class RemoveFromParent;
 class RemoveIfOutOfArea;
 using AnimatePtr = std::shared_ptr<Animate>;
@@ -28,6 +29,7 @@ using SequencePtr = std::shared_ptr<Sequence>;
 using ParallelizePtr = std::shared_ptr<Parallelize>;
 using WaitPtr = std::shared_ptr<Wait>;
 using RotationPtr = std::shared_ptr<Rotation>;
+using ScalingPtr = std::shared_ptr<Scaling>;
 using RemoveFromParentPtr = std::shared_ptr<RemoveFromParent>;
 using RemoveIfOutOfAreaPtr = std::shared_ptr<RemoveIfOutOfArea>;
 
@@ -238,6 +240,32 @@ public:
 private:
   glm::f32 start;
   glm::f32 rotation;
+};
+
+/**
+* 拡大・縮小アニメーション.
+*/
+class Scaling : public Tween
+{
+public:
+  static ScalingPtr Create(glm::f32 d, const glm::vec2& v, EasingType e = EasingType::Linear, Target t = Target::XY)
+  {
+    return std::make_shared<Scaling>(d, v, e, t);
+  }
+
+  Scaling() = default;
+  Scaling(glm::f32 d, const glm::vec2& v, EasingType e = EasingType::Linear, Target t = Target::XY);
+  Scaling(const Scaling&) = delete;
+  Scaling& operator=(const Scaling&) = delete;
+  virtual ~Scaling() = default;
+
+  virtual void Initialize(Node&) override;
+  virtual void Update(Node&, glm::f32) override;
+
+private:
+  glm::vec2 start; ///< 移動開始座標.
+  glm::vec2 vector; ///< 移動する距離.
+  Target target = Target::XY; ///< 操作対象.
 };
 
 /**

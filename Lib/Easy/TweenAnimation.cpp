@@ -278,14 +278,72 @@ void RemoveFromParent::Update(Node& node, glm::f32 elapsed)
   }
 }
 
+/**
+* 回転アニメーションを初期化する.
+*
+* @param node 制御対象のノード.
+*/
 void Rotation::Initialize(Node& node)
 {
   start = node.Rotation();
 }
 
+/**
+* 回転アニメーションを更新する.
+*
+* @param node    更新対象のノード.
+* @param elapsed 経過時間.
+*/
 void Rotation::Update(Node& node, glm::f32 dt)
 {
-  node.Rotation(start + rotation * dt);
+  const glm::f32 ratio = dt * ReciprocalUnitDuration();
+  node.Rotation(start + rotation * ratio);
+}
+
+/**
+* コンストラクタ.
+*
+* @param d  動作時間.
+* @param v  拡大・縮小率.
+* @param e  補間方法.
+* @param t  操作対象とする軸.
+*/
+Scaling::Scaling(glm::f32 d, const glm::vec2& v, EasingType e, Target t)
+  : Tween(d, e)
+  , vector(v)
+  , target(t)
+{
+}
+
+/**
+* 拡大・縮小アニメーションを初期化する.
+*
+* @param node 制御対象のノード.
+*/
+void Scaling::Initialize(Node& node)
+{
+  Tween::Initialize(node);
+  start = node.Position();
+}
+
+/**
+* 拡大・縮小アニメーションを更新する.
+*
+* @param node    更新対象のノード.
+* @param elapsed 経過時間.
+*/
+void Scaling::Update(Node& node, glm::f32 elapsed)
+{
+  const glm::f32 ratio = elapsed * ReciprocalUnitDuration();
+  const glm::vec2 cur = start + vector * ratio;
+  glm::vec2 tmp = node.Scale();
+  if (static_cast<int>(target) & static_cast<int>(Target::X)) {
+    tmp.x = cur.x;
+  }
+  if (static_cast<int>(target) & static_cast<int>(Target::Y)) {
+    tmp.y = cur.y;
+  }
+  node.Scale(tmp);
 }
 
 /**
