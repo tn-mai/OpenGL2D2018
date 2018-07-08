@@ -469,23 +469,23 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
 /**
 * Õ“Ë”»’è.
 */
-void collisionDetection(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function)
+void collisionDetection(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, CollisionHandlerType function)
 {
-  for (Actor* bullet = first0; bullet != last0; ++bullet) {
-    if (bullet->health <= 0) {
+  for (Actor* a = firstA; a != lastA; ++a) {
+    if (a->health <= 0) {
       continue;
     }
-    Rect shotRect = bullet->collisionShape;
-    shotRect.origin += glm::vec2(bullet->spr.Position());
-    for (Actor* enemy = first1; enemy != last1; ++enemy) {
-      if (enemy->health <= 0) {
+    Rect rectA = a->collisionShape;
+    rectA.origin += glm::vec2(a->spr.Position());
+    for (Actor* b = firstB; b != lastB; ++b) {
+      if (b->health <= 0) {
         continue;
       }
-      Rect enemyRect = enemy->collisionShape;
-      enemyRect.origin += glm::vec2(enemy->spr.Position());
-      if (detectCollision(&shotRect, &enemyRect)) {
-        function(bullet, enemy);
-        if (bullet->health <= 0) {
+      Rect rectB = b->collisionShape;
+      rectB.origin += glm::vec2(b->spr.Position());
+      if (detectCollision(&rectA, &rectB)) {
+        function(a, b);
+        if (a->health <= 0) {
           break;
         }
       }
