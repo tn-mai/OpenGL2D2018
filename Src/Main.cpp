@@ -82,6 +82,7 @@ void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* rend
 using CollisionHandlerType = bool(*)(Actor*, Actor*);
 void collisionDetection(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
 bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
+bool playerAndEnemyContactHandler(Actor * player, Actor * enemy);
 
 /**
 * プログラムのエントリーポイント.
@@ -114,6 +115,8 @@ int main()
   // 使用する画像を用意.
   sprBackground = Sprite("Res/UnknownPlanet.png");
   sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
+  sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
+  sprPlayer.health = 1;
 
   initializeActorList(std::begin(enemyList), std::end(enemyList));
   initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
@@ -146,34 +149,36 @@ void processInput(GLFWEW::WindowRef window)
 {
   window.Update();
 
-  // 自機の速度を設定する.
-  const GamePad gamepad = window.GetGamePad();
-  if (gamepad.buttons & GamePad::DPAD_UP) {
-    playerVelocity.y = 1;
-  } else if (gamepad.buttons & GamePad::DPAD_DOWN) {
-    playerVelocity.y = -1;
-  } else {
-    playerVelocity.y = 0;
-  }
-  if (gamepad.buttons & GamePad::DPAD_RIGHT) {
-    playerVelocity.x = 1;
-  } else if (gamepad.buttons & GamePad::DPAD_LEFT) {
-    playerVelocity.x = -1;
-  } else {
-    playerVelocity.x = 0;
-  }
-  if (playerVelocity.x || playerVelocity.y) {
-    playerVelocity = glm::normalize(playerVelocity) * 400.0f;
-  }
+  if (sprPlayer.health > 0) {
+    // 自機の速度を設定する.
+    const GamePad gamepad = window.GetGamePad();
+    if (gamepad.buttons & GamePad::DPAD_UP) {
+      playerVelocity.y = 1;
+    } else if (gamepad.buttons & GamePad::DPAD_DOWN) {
+      playerVelocity.y = -1;
+    } else {
+      playerVelocity.y = 0;
+    }
+    if (gamepad.buttons & GamePad::DPAD_RIGHT) {
+      playerVelocity.x = 1;
+    } else if (gamepad.buttons & GamePad::DPAD_LEFT) {
+      playerVelocity.x = -1;
+    } else {
+      playerVelocity.x = 0;
+    }
+    if (playerVelocity.x || playerVelocity.y) {
+      playerVelocity = glm::normalize(playerVelocity) * 400.0f;
+    }
 
-  // 弾の発射.
-  if (gamepad.buttonDown & GamePad::A) {
-    Actor* bullet = findAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
-    if (bullet != nullptr) {
-      bullet->spr = Sprite("Res/Objects.png", sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
-      bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
-      bullet->collisionShape = Rect(-16, -8, 32, 16);
-      bullet->health = 1;
+    // 弾の発射.
+    if (gamepad.buttonDown & GamePad::A) {
+      Actor* bullet = findAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
+      if (bullet != nullptr) {
+        bullet->spr = Sprite("Res/Objects.png", sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
+        bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
+        bullet->collisionShape = Rect(-16, -8, 32, 16);
+        bullet->health = 1;
+      }
     }
   }
 }
@@ -188,22 +193,24 @@ void update(GLFWEW::WindowRef window)
   const float deltaTime = window.DeltaTime();
 
   // 自機の移動.
-  if (playerVelocity.x || playerVelocity.y) {
-    glm::vec3 newPos = sprPlayer.spr.Position() + playerVelocity * deltaTime;
-    const Rect playerRect = sprPlayer.spr.Rectangle();
-    if (newPos.x < -0.5f * (windowWidth - playerRect.size.x)) {
-      newPos.x = -0.5f * (windowWidth - playerRect.size.x);
-    } else if (newPos.x > 0.5f * (windowWidth - playerRect.size.x)) {
-      newPos.x = 0.5f * (windowWidth - playerRect.size.x);
+  if (sprPlayer.health > 0) {
+    if (playerVelocity.x || playerVelocity.y) {
+      glm::vec3 newPos = sprPlayer.spr.Position() + playerVelocity * deltaTime;
+      const Rect playerRect = sprPlayer.spr.Rectangle();
+      if (newPos.x < -0.5f * (windowWidth - playerRect.size.x)) {
+        newPos.x = -0.5f * (windowWidth - playerRect.size.x);
+      } else if (newPos.x > 0.5f * (windowWidth - playerRect.size.x)) {
+        newPos.x = 0.5f * (windowWidth - playerRect.size.x);
+      }
+      if (newPos.y < -0.5f * (windowHeight - playerRect.size.y)) {
+        newPos.y = -0.5f * (windowHeight - playerRect.size.y);
+      } else if (newPos.y > 0.5f * (windowHeight - playerRect.size.y)) {
+        newPos.y = 0.5f * (windowHeight - playerRect.size.y);
+      }
+      sprPlayer.spr.Position(newPos);
     }
-    if (newPos.y < -0.5f * (windowHeight - playerRect.size.y)) {
-      newPos.y = -0.5f * (windowHeight - playerRect.size.y);
-    } else if (newPos.y > 0.5f * (windowHeight - playerRect.size.y)) {
-      newPos.y = 0.5f * (windowHeight - playerRect.size.y);
-    }
-    sprPlayer.spr.Position(newPos);
+    sprPlayer.spr.Update(deltaTime);
   }
-  sprPlayer.spr.Update(deltaTime);
 
   // 敵の出現.
 #if 1
@@ -273,6 +280,13 @@ void update(GLFWEW::WindowRef window)
     std::begin(playerBulletList), std::end(playerBulletList),
     std::begin(enemyList), std::end(enemyList),
     playerBulletAndEnemyContactHandler);
+
+  // 自機と敵の衝突判定.
+  collisionDetection(
+    &sprPlayer, &sprPlayer + 1,
+    std::begin(enemyList), std::end(enemyList),
+    playerAndEnemyContactHandler
+  );
 }
 
 /**
@@ -284,7 +298,9 @@ void render(GLFWEW::WindowRef window)
 {
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
-  renderer.AddVertices(sprPlayer.spr);
+  if (sprPlayer.health > 0) {
+    renderer.AddVertices(sprPlayer.spr);
+  }
   renderActorList(std::begin(enemyList), std::end(enemyList), &renderer);
   renderActorList(std::begin(playerBulletList), std::end(playerBulletList), &renderer);
   renderActorList(std::begin(effectList), std::end(effectList), &renderer);
@@ -415,7 +431,48 @@ bool playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
   return bullet->health <= 0;
 }
 
-using CollisionHandlerType = bool(*)(Actor*, Actor*);
+/**
+* 自機の弾と敵の衝突を処理する.
+*
+* @param bullet 自機のポインタ.
+* @param enemy  敵のポインタ.
+*
+* @retval true  弾の衝突処理を終了する.
+* @retval false 弾の衝突処理を継続する.
+*/
+bool playerAndEnemyContactHandler(Actor * player, Actor * enemy)
+{
+  if (player->health > enemy->health) {
+    player->health -= enemy->health;
+    enemy->health = 0;;
+  } else {
+    enemy->health -= player->health;
+    player->health = 0;
+  }
+  if (enemy->health <= 0) {
+    score += 100;
+    Actor* blast = findAvailableActor(std::begin(effectList), std::end(effectList));
+    if (blast != nullptr) {
+      blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
+      blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
+      namespace TA = TweenAnimation;
+      blast->spr.Tweener(TA::Animate::Create(TA::Rotation::Create(20 / 60.0f, glm::pi<float>() * 0.5f)));
+      blast->health = 1;
+    }
+  }
+  if (player->health <= 0) {
+    Actor* blast = findAvailableActor(std::begin(effectList), std::end(effectList));
+    if (blast != nullptr) {
+      blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
+      blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
+      namespace TA = TweenAnimation;
+      blast->spr.Tweener(TA::Animate::Create(TA::Rotation::Create(20 / 60.0f, glm::pi<float>() * 0.5f)));
+      blast->spr.Scale(glm::vec2(2, 2));
+      blast->health = 1;
+    }
+  }
+  return player->health <= 0;
+}
 
 /**
 * 衝突判定.
