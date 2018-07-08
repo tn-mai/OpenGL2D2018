@@ -467,7 +467,13 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
 }
 
 /**
-* 衝突判定.
+* 衝突を検出する.
+*
+* @param firstA    衝突させる配列Aの先頭ポインタ.
+* @param lastA     衝突させる配列Aの終端ポインタ.
+* @param firstB    衝突させる配列Bの先頭ポインタ.
+* @param lastB     衝突させる配列Bの終端ポインタ.
+* @param function  A-B間で衝突が検出されたときに実行する関数.
 */
 void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, CollisionHandlerType function)
 {
