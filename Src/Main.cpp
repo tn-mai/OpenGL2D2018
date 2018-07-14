@@ -67,6 +67,12 @@ std::mt19937 random; // 乱数を発生させる変数(乱数エンジン).
 float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
 int score; // プレイヤーのスコア.
 
+// ゲームの状態.
+const int gamestateTitle = 0;
+const int gamestateMain = 1;
+const int gamestateGameover = 2;
+int gamestate;
+
 /*
 * プロトタイプ宣言.
 */
@@ -83,6 +89,26 @@ using CollisionHandlerType = void(*)(Actor*, Actor*);
 void detectCollision(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
 void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
 void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
+
+/**
+* タイトル画面で使用する構造体.
+*/
+struct TitleScene
+{
+  int* gamestate;
+  Sprite bg;
+  Sprite logo;
+  const int modeStart = 0;
+  const int modeTitle = 1;
+  const int modeNextState = 2;
+  int mode;
+  float timer;
+};
+TitleScene titleScene;
+bool initialize(TitleScene*);
+void processInput(GLFWEW::WindowRef, TitleScene*);
+void update(GLFWEW::WindowRef, TitleScene*);
+void render(GLFWEW::WindowRef, TitleScene*);
 
 /**
 * プログラムのエントリーポイント.
@@ -129,6 +155,8 @@ int main()
   enemyMap.Load("Res/EnemyMap.json");
   mapCurrentPosX = mapProcessedX = windowWidth;
 
+  initialize(&titleScene);
+
   // ゲームループ.
   while (!window.ShouldClose()) {
     processInput(window);
@@ -148,6 +176,11 @@ int main()
 void processInput(GLFWEW::WindowRef window)
 {
   window.Update();
+
+  if (gamestate == gamestateTitle) {
+    processInput(window, &titleScene);
+    return;
+  }
 
   if (sprPlayer.health > 0) {
     // 自機の速度を設定する.
@@ -190,6 +223,11 @@ void processInput(GLFWEW::WindowRef window)
 */
 void update(GLFWEW::WindowRef window)
 {
+  if (gamestate == gamestateTitle) {
+    update(window, &titleScene);
+    return;
+  }
+
   const float deltaTime = window.DeltaTime();
 
   // 自機の移動.
@@ -296,6 +334,11 @@ void update(GLFWEW::WindowRef window)
 */
 void render(GLFWEW::WindowRef window)
 {
+  if (gamestate == gamestateTitle) {
+    render(window, &titleScene);
+    return;
+  }
+
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
   if (sprPlayer.health > 0) {
@@ -497,4 +540,93 @@ void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, C
       }
     }
   }
+}
+
+/**
+* タイトル画面用の構造体の初期設定を行う.
+*
+* @param scene     タイトル画面用構造体のポインタ.
+* @param gamestate ゲーム状態を表す変数のポインタ.
+*
+* @retval true  初期化成功.
+* @retval false 初期化失敗.
+*/
+bool initialize(TitleScene* scene, int* gamestate)
+{
+  scene->gamestate = gamestate;
+  scene->bg = Sprite("Res/UnknownPlanet.png");
+  scene->logo = Sprite("Res/Title.png", glm::vec3(0, 100, 0));
+  scene->mode = scene->modeStart;
+  scene->timer = 0.5f;
+  return true;
+}
+
+/**
+* タイトル画面のプレイヤー入力を処理する.
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  タイトル画面用構造体のポインタ.
+*/
+void processInput(GLFWEW::WindowRef window, TitleScene* scene)
+{
+  if (scene->mode != scene->modeTitle) {
+    return;
+  }
+  const GamePad gamepad = window.GetGamePad();
+  if (gamepad.buttonDown & GamePad::A) {
+    scene->mode = scene->modeNextState;
+    scene->timer = 1.0f;
+  }
+}
+
+/**
+* タイトル画面を更新する.
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  タイトル画面用構造体のポインタ.
+*/
+void update(GLFWEW::WindowRef window, TitleScene* scene)
+{
+  const float deltaTime = window.DeltaTime();
+
+  scene->bg.Update(deltaTime);
+  scene->logo.Update(deltaTime);
+
+  if (scene->timer > 0) {
+    scene->timer -= deltaTime;
+    return;
+  }
+  if (scene->mode == scene->modeStart) {
+    scene->mode = scene->modeTitle;
+  } else if (scene->mode == scene->modeNextState) {
+    *scene->gamestate = gamestateMain;
+  }
+}
+
+/**
+* タイトル画面を更新する.
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  タイトル画面用構造体のポインタ.
+*/
+void render(GLFWEW::WindowRef window, TitleScene* scene)
+{
+  renderer.BeginUpdate();
+  renderer.AddVertices(scene->bg);
+  renderer.AddVertices(scene->logo);
+  renderer.EndUpdate();
+  renderer.Draw(glm::vec2(windowWidth, windowHeight));
+
+  fontRenderer.BeginUpdate();
+  if (scene->mode == scene->modeTitle) {
+    fontRenderer.AddString(glm::vec2(-80, -100), "START");
+  } else if (scene->mode == scene->modeNextState) {
+    if (static_cast<int>(scene->timer * 10) % 2) {
+      fontRenderer.AddString(glm::vec2(-80, -100), "START");
+    }
+  }
+  fontRenderer.EndUpdate();
+  fontRenderer.Draw();
+
+  window.SwapBuffers();
 }
