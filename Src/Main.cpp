@@ -105,10 +105,26 @@ struct TitleScene
   float timer;
 };
 TitleScene titleScene;
-bool initialize(TitleScene*);
+bool initialize(TitleScene*, int*);
 void processInput(GLFWEW::WindowRef, TitleScene*);
 void update(GLFWEW::WindowRef, TitleScene*);
 void render(GLFWEW::WindowRef, TitleScene*);
+
+/**
+* ゲームオーバー画面で使用する構造体.
+*/
+struct GameOverScene
+{
+  int* gamestate;
+  Sprite bg;
+  float timer;
+};
+GameOverScene gameOverScene;
+bool initialize(GameOverScene*, int*);
+void finalize(GameOverScene*);
+void processInput(GLFWEW::WindowRef, GameOverScene*);
+void update(GLFWEW::WindowRef, GameOverScene*);
+void render(GLFWEW::WindowRef, GameOverScene*);
 
 /**
 * プログラムのエントリーポイント.
@@ -155,7 +171,7 @@ int main()
   enemyMap.Load("Res/EnemyMap.json");
   mapCurrentPosX = mapProcessedX = windowWidth;
 
-  initialize(&titleScene);
+  initialize(&titleScene, &gamestate);
 
   // ゲームループ.
   while (!window.ShouldClose()) {
@@ -179,6 +195,9 @@ void processInput(GLFWEW::WindowRef window)
 
   if (gamestate == gamestateTitle) {
     processInput(window, &titleScene);
+    return;
+  } else if (gamestate == gamestateGameover) {
+    processInput(window, &gameOverScene);
     return;
   }
 
@@ -226,6 +245,15 @@ void update(GLFWEW::WindowRef window)
   if (gamestate == gamestateTitle) {
     update(window, &titleScene);
     return;
+  } else if (gamestate == gamestateGameover) {
+    update(window, &gameOverScene);
+    return;
+  } else if (gamestate == gamestateMain) {
+    if (sprPlayer.health <= 0) {
+      gamestate = gamestateGameover;
+      initialize(&gameOverScene, &gamestate);
+      return;
+    }
   }
 
   const float deltaTime = window.DeltaTime();
@@ -336,6 +364,9 @@ void render(GLFWEW::WindowRef window)
 {
   if (gamestate == gamestateTitle) {
     render(window, &titleScene);
+    return;
+  } else if (gamestate == gamestateGameover) {
+    render(window, &gameOverScene);
     return;
   }
 
@@ -600,6 +631,14 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
     scene->mode = scene->modeTitle;
   } else if (scene->mode == scene->modeNextState) {
     *scene->gamestate = gamestateMain;
+    initializeActorList(std::begin(enemyList), std::end(enemyList));
+    initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
+    initializeActorList(std::begin(effectList), std::end(effectList));
+    score = 0;
+    mapCurrentPosX = mapProcessedX = windowWidth;
+    sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
+    sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
+    sprPlayer.health = 1;
   }
 }
 
@@ -625,6 +664,87 @@ void render(GLFWEW::WindowRef window, TitleScene* scene)
       fontRenderer.AddString(glm::vec2(-80, -100), "START");
     }
   }
+  fontRenderer.EndUpdate();
+  fontRenderer.Draw();
+
+  window.SwapBuffers();
+}
+
+/**
+* ゲームオーバー画面の初期設定を行う.
+*
+* @param scene     ゲームオーバー画面用構造体のポインタ.
+* @param gamestate ゲーム状態を表す変数のポインタ.
+*
+* @retval true  初期化成功.
+* @retval false 初期化失敗.
+*/
+bool initialize(GameOverScene* scene, int* gamestate)
+{
+  scene->gamestate = gamestate;
+  scene->bg = Sprite("Res/UnknownPlanet.png");
+  scene->timer = 0.5f;
+  return true;
+}
+
+/**
+* ゲームオーバー画面の終了処理を行う.
+*
+* @param scene  ゲームオーバー画面用構造体のポインタ.
+*/
+void finalize(GameOverScene* scene)
+{
+  scene->gamestate = nullptr;
+  scene->bg.Texture(nullptr);
+}
+
+/**
+* ゲームオーバー画面のプレイヤー入力を処理する.
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  ゲームオーバー画面用構造体のポインタ.
+*/
+void processInput(GLFWEW::WindowRef window, GameOverScene* scene)
+{
+  if (scene->timer <= 0) {
+    const GamePad gamepad = window.GetGamePad();
+    if (gamepad.buttonDown & GamePad::A) {
+      *scene->gamestate = gamestateTitle;
+      initialize(&titleScene, scene->gamestate);
+    }
+  }
+}
+
+/**
+* ゲームオーバー画面を更新する.
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  ゲームオーバー画面用構造体のポインタ.
+*/
+void update(GLFWEW::WindowRef window, GameOverScene* scene)
+{
+  const float deltaTime = window.DeltaTime();
+  if (scene->timer > 0) {
+    scene->timer -= deltaTime;
+  }
+  scene->bg.Update(deltaTime);
+}
+
+/**
+* ゲームオーバー画面を更新する.
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  ゲームオーバー画面用構造体のポインタ.
+*/
+void render(GLFWEW::WindowRef window, GameOverScene* scene)
+{
+  renderer.BeginUpdate();
+  renderer.AddVertices(scene->bg);
+  renderer.EndUpdate();
+  renderer.Draw(glm::vec2(windowWidth, windowHeight));
+
+  fontRenderer.BeginUpdate();
+  fontRenderer.AddString(glm::vec2(-144, 16), "GAME OVER");
   fontRenderer.EndUpdate();
   fontRenderer.Draw();
 
