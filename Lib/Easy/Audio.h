@@ -34,6 +34,7 @@ public:
 	virtual float SetVolume(float) = 0;
 	virtual float SetPitch(float) = 0;
 	virtual int GetState() const = 0;
+    virtual bool IsNull() const = 0;
 };
 typedef std::shared_ptr<Sound> SoundPtr;
 
@@ -48,6 +49,7 @@ public:
 	virtual bool Initialize() = 0;
 	virtual void Destroy() = 0;
 	virtual bool Update() = 0;
+	virtual SoundPtr Prepare(const char*) = 0;
 	virtual SoundPtr Prepare(const wchar_t*) = 0;
 	virtual SoundPtr PrepareStream(const wchar_t*) = 0;
     virtual SoundPtr PrepareMFStream(const wchar_t*) = 0;

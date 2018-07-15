@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <wrl/client.h>
 #include <algorithm>
+#include <wincodec.h>
 #include <iostream>
 
 #include <mfidl.h>
@@ -185,6 +186,26 @@ bool LoadWaveFile(HANDLE hFile, WF& wf, std::vector<UINT32>& seekTable, std::vec
 }
 
 /**
+* Soundの空実装.
+*
+* オーディオファイルのパス名が無効だったり、再生できないフォーマットだったりした
+* 場合に、このクラスのオブジェクトが返される.
+*/
+class NullSoundImpl : public Sound
+{
+public:
+  virtual ~NullSoundImpl() = default;
+  virtual bool Play(int) override { return false; }
+  virtual bool Pause() override { return false; }
+  virtual bool Seek() override { return false; }
+  virtual bool Stop() override { return false; }
+  virtual float SetVolume(float) override { return 0; }
+  virtual float SetPitch(float) override { return 0; }
+  virtual int GetState() const override { return 0; }
+  virtual bool IsNull() const override { return true; }
+};
+
+/**
 * Soundの実装.
 *
 * ストリーミングを行わないオーディオクラス.
@@ -266,6 +287,8 @@ public:
 		sourceVoice->GetState(&s);
 		return s.BuffersQueued ? state : (State_Stopped | State_Prepared);
 	}
+
+	virtual bool IsNull() const override { return false; }
 
 	int state;
 	IXAudio2SourceVoice* sourceVoice;
@@ -388,6 +411,8 @@ public:
 		}
 		return true;
 	}
+
+	virtual bool IsNull() const override { return false; }
 
 	IXAudio2SourceVoice* sourceVoice;
 	std::vector<UINT32> seekTable;
@@ -532,6 +557,8 @@ public:
     sourceVoice->GetState(&s);
     return s.BuffersQueued ? (state | State_Prepared) : State_Stopped;
   }
+
+  virtual bool IsNull() const override { return false; }
 
   enum Result {
     success,
@@ -729,6 +756,44 @@ public:
       return true;
     }
 
+    /**
+    * 音声を準備する(SJIS文字列用).
+    *
+    * @param filename 音声ファイルのパス(SJIS文字列).
+    *
+    * @return 音声オブジェクトへのポインタ.
+    *
+    * ワンショット再生だけなら次のように直接Play()を呼び出すこともできる.
+    * @code
+    * Audio::Engine::Instance().Prepare("ファイルパス")->Play()
+    * @endcode
+    *
+    * 効果音のように何度も再生する音声、または停止の必要がある音声の場合、戻り値を変数に格納しておいて
+    * 必要なタイミングで関数を呼ぶ.
+    * @code
+    * // 音声を準備し、戻り値の音声制御オブジェクトを変数seに格納.
+    * Audio::SoundPtr se = Audio::Engine::Instance().Prepare("ファイルパス");
+    * ～～～
+    * // 変数seに格納した音声制御オブジェクトを使って再生.
+    * se->Play();
+    * @endcode
+    */
+    virtual SoundPtr Prepare(const char* filename) override {
+      std::vector<wchar_t> wcFilename(std::strlen(filename) + 1);
+      const size_t len = mbstowcs(wcFilename.data(), filename, wcFilename.size());
+      if (len != static_cast<size_t>(-1)) {
+        wcFilename[len] = L'\0';
+        if (SoundPtr p = Prepare(wcFilename.data())) {
+          return p;
+        }
+        if (SoundPtr p = PrepareMFStream(wcFilename.data())) {
+          return p;
+        }
+      }
+      std::cerr << "ERROR: " << filename << "を読み込めません." << std::endl;
+      return std::make_shared<NullSoundImpl>();
+    }
+
 	/**
 	* 音声を準備する(UTF-16文字列用).
 	*
@@ -792,7 +857,9 @@ public:
     */
     virtual SoundPtr PrepareMFStream(const wchar_t* filename) override {
       std::shared_ptr<MFStreamSoundImpl> mfs = std::make_shared<MFStreamSoundImpl>();
-      mfs->Init(xaudio, attributes.Get(), filename);
+      if (!mfs->Init(xaudio, attributes.Get(), filename)) {
+        return nullptr;
+      }
       mfSoundList.push_back(mfs);
       return mfs;
     }
