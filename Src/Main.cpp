@@ -106,6 +106,7 @@ struct TitleScene
 };
 TitleScene titleScene;
 bool initialize(TitleScene*, int*);
+void finalize(TitleScene*);
 void processInput(GLFWEW::WindowRef, TitleScene*);
 void update(GLFWEW::WindowRef, TitleScene*);
 void render(GLFWEW::WindowRef, TitleScene*);
@@ -593,6 +594,18 @@ bool initialize(TitleScene* scene, int* gamestate)
 }
 
 /**
+* タイトル画面の終了処理を行う.
+*
+* @param scene  タイトル画面用構造体のポインタ.
+*/
+void finalize(TitleScene* scene)
+{
+  scene->gamestate = nullptr;
+  scene->bg.Texture(nullptr);
+  scene->logo.Texture(nullptr);
+}
+
+/**
 * タイトル画面のプレイヤー入力を処理する.
 *
 * @param window ゲームを管理するウィンドウ.
@@ -631,6 +644,7 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
     scene->mode = scene->modeTitle;
   } else if (scene->mode == scene->modeNextState) {
     *scene->gamestate = gamestateMain;
+    finalize(scene);
     initializeActorList(std::begin(enemyList), std::end(enemyList));
     initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
     initializeActorList(std::begin(effectList), std::end(effectList));
@@ -711,6 +725,7 @@ void processInput(GLFWEW::WindowRef window, GameOverScene* scene)
     if (gamepad.buttonDown & GamePad::A) {
       *scene->gamestate = gamestateTitle;
       initialize(&titleScene, scene->gamestate);
+      finalize(scene);
     }
   }
 }
