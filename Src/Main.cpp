@@ -67,12 +67,6 @@ std::mt19937 random; // 乱数を発生させる変数(乱数エンジン).
 float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
 int score; // プレイヤーのスコア.
 
-// ゲームの状態.
-const int gamestateTitle = 0;
-const int gamestateMain = 1;
-const int gamestateGameover = 2;
-int gamestate;
-
 /*
 * プロトタイプ宣言.
 */
@@ -103,7 +97,6 @@ struct TitleScene
   int mode;
   float timer;
 };
-TitleScene titleScene;
 bool initialize(TitleScene*);
 void finalize(TitleScene*);
 void processInput(GLFWEW::WindowRef, TitleScene*);
@@ -118,12 +111,26 @@ struct GameOverScene
   Sprite bg;
   float timer;
 };
-GameOverScene gameOverScene;
 bool initialize(GameOverScene*);
 void finalize(GameOverScene*);
 void processInput(GLFWEW::WindowRef, GameOverScene*);
 void update(GLFWEW::WindowRef, GameOverScene*);
 void render(GLFWEW::WindowRef, GameOverScene*);
+
+/**
+* ゲームの状態管理.
+*/
+struct GameData
+{
+  const int gamestateTitle = 0;
+  const int gamestateMain = 1;
+  const int gamestateGameover = 2;
+  int gamestate; // ゲームの状態.
+
+  TitleScene title;
+  GameOverScene gameOver;
+};
+GameData gameData;
 
 /**
 * プログラムのエントリーポイント.
@@ -170,7 +177,7 @@ int main()
   enemyMap.Load("Res/EnemyMap.json");
   mapCurrentPosX = mapProcessedX = windowWidth;
 
-  initialize(&titleScene);
+  initialize(&gameData.title);
 
   // ゲームループ.
   while (!window.ShouldClose()) {
@@ -192,11 +199,11 @@ void processInput(GLFWEW::WindowRef window)
 {
   window.Update();
 
-  if (gamestate == gamestateTitle) {
-    processInput(window, &titleScene);
+  if (gameData.gamestate == gameData.gamestateTitle) {
+    processInput(window, &gameData.title);
     return;
-  } else if (gamestate == gamestateGameover) {
-    processInput(window, &gameOverScene);
+  } else if (gameData.gamestate == gameData.gamestateGameover) {
+    processInput(window, &gameData.gameOver);
     return;
   }
 
@@ -241,16 +248,16 @@ void processInput(GLFWEW::WindowRef window)
 */
 void update(GLFWEW::WindowRef window)
 {
-  if (gamestate == gamestateTitle) {
-    update(window, &titleScene);
+  if (gameData.gamestate == gameData.gamestateTitle) {
+    update(window, &gameData.title);
     return;
-  } else if (gamestate == gamestateGameover) {
-    update(window, &gameOverScene);
+  } else if (gameData.gamestate == gameData.gamestateGameover) {
+    update(window, &gameData.gameOver);
     return;
-  } else if (gamestate == gamestateMain) {
+  } else if (gameData.gamestate == gameData.gamestateMain) {
     if (sprPlayer.health <= 0) {
-      gamestate = gamestateGameover;
-      initialize(&gameOverScene);
+      gameData.gamestate = gameData.gamestateGameover;
+      initialize(&gameData.gameOver);
       return;
     }
   }
@@ -361,11 +368,11 @@ void update(GLFWEW::WindowRef window)
 */
 void render(GLFWEW::WindowRef window)
 {
-  if (gamestate == gamestateTitle) {
-    render(window, &titleScene);
+  if (gameData.gamestate == gameData.gamestateTitle) {
+    render(window, &gameData.title);
     return;
-  } else if (gamestate == gamestateGameover) {
-    render(window, &gameOverScene);
+  } else if (gameData.gamestate == gameData.gamestateGameover) {
+    render(window, &gameData.gameOver);
     return;
   }
 
@@ -639,7 +646,7 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
   if (scene->mode == scene->modeStart) {
     scene->mode = scene->modeTitle;
   } else if (scene->mode == scene->modeNextState) {
-    gamestate = gamestateMain;
+    gameData.gamestate = gameData.gamestateMain;
     finalize(scene);
     initializeActorList(std::begin(enemyList), std::end(enemyList));
     initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
@@ -716,8 +723,8 @@ void processInput(GLFWEW::WindowRef window, GameOverScene* scene)
   if (scene->timer <= 0) {
     const GamePad gamepad = window.GetGamePad();
     if (gamepad.buttonDown & GamePad::A) {
-      gamestate = gamestateTitle;
-      initialize(&titleScene);
+      gameData.gamestate = gameData.gamestateTitle;
+      initialize(&gameData.title);
       finalize(scene);
     }
   }
