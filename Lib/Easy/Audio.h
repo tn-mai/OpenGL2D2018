@@ -59,6 +59,8 @@ private:
 	Engine& operator=(const Engine&) = delete;
 };
 
+using EngineRef = Engine&;
+
 } // namespace Audio
 
 #endif // AUDIO_H_INCLUDED
