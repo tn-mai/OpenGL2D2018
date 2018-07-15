@@ -95,7 +95,6 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
 */
 struct TitleScene
 {
-  int* gamestate;
   Sprite bg;
   Sprite logo;
   const int modeStart = 0;
@@ -105,7 +104,7 @@ struct TitleScene
   float timer;
 };
 TitleScene titleScene;
-bool initialize(TitleScene*, int*);
+bool initialize(TitleScene*);
 void finalize(TitleScene*);
 void processInput(GLFWEW::WindowRef, TitleScene*);
 void update(GLFWEW::WindowRef, TitleScene*);
@@ -116,12 +115,11 @@ void render(GLFWEW::WindowRef, TitleScene*);
 */
 struct GameOverScene
 {
-  int* gamestate;
   Sprite bg;
   float timer;
 };
 GameOverScene gameOverScene;
-bool initialize(GameOverScene*, int*);
+bool initialize(GameOverScene*);
 void finalize(GameOverScene*);
 void processInput(GLFWEW::WindowRef, GameOverScene*);
 void update(GLFWEW::WindowRef, GameOverScene*);
@@ -172,7 +170,7 @@ int main()
   enemyMap.Load("Res/EnemyMap.json");
   mapCurrentPosX = mapProcessedX = windowWidth;
 
-  initialize(&titleScene, &gamestate);
+  initialize(&titleScene);
 
   // ゲームループ.
   while (!window.ShouldClose()) {
@@ -252,7 +250,7 @@ void update(GLFWEW::WindowRef window)
   } else if (gamestate == gamestateMain) {
     if (sprPlayer.health <= 0) {
       gamestate = gamestateGameover;
-      initialize(&gameOverScene, &gamestate);
+      initialize(&gameOverScene);
       return;
     }
   }
@@ -583,9 +581,8 @@ void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, C
 * @retval true  初期化成功.
 * @retval false 初期化失敗.
 */
-bool initialize(TitleScene* scene, int* gamestate)
+bool initialize(TitleScene* scene)
 {
-  scene->gamestate = gamestate;
   scene->bg = Sprite("Res/UnknownPlanet.png");
   scene->logo = Sprite("Res/Title.png", glm::vec3(0, 100, 0));
   scene->mode = scene->modeStart;
@@ -600,7 +597,6 @@ bool initialize(TitleScene* scene, int* gamestate)
 */
 void finalize(TitleScene* scene)
 {
-  scene->gamestate = nullptr;
   scene->bg.Texture(nullptr);
   scene->logo.Texture(nullptr);
 }
@@ -643,7 +639,7 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
   if (scene->mode == scene->modeStart) {
     scene->mode = scene->modeTitle;
   } else if (scene->mode == scene->modeNextState) {
-    *scene->gamestate = gamestateMain;
+    gamestate = gamestateMain;
     finalize(scene);
     initializeActorList(std::begin(enemyList), std::end(enemyList));
     initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
@@ -688,14 +684,12 @@ void render(GLFWEW::WindowRef window, TitleScene* scene)
 * ゲームオーバー画面の初期設定を行う.
 *
 * @param scene     ゲームオーバー画面用構造体のポインタ.
-* @param gamestate ゲーム状態を表す変数のポインタ.
 *
 * @retval true  初期化成功.
 * @retval false 初期化失敗.
 */
-bool initialize(GameOverScene* scene, int* gamestate)
+bool initialize(GameOverScene* scene)
 {
-  scene->gamestate = gamestate;
   scene->bg = Sprite("Res/UnknownPlanet.png");
   scene->timer = 0.5f;
   return true;
@@ -708,7 +702,6 @@ bool initialize(GameOverScene* scene, int* gamestate)
 */
 void finalize(GameOverScene* scene)
 {
-  scene->gamestate = nullptr;
   scene->bg.Texture(nullptr);
 }
 
@@ -723,8 +716,8 @@ void processInput(GLFWEW::WindowRef window, GameOverScene* scene)
   if (scene->timer <= 0) {
     const GamePad gamepad = window.GetGamePad();
     if (gamepad.buttonDown & GamePad::A) {
-      *scene->gamestate = gamestateTitle;
-      initialize(&titleScene, scene->gamestate);
+      gamestate = gamestateTitle;
+      initialize(&titleScene);
       finalize(scene);
     }
   }
