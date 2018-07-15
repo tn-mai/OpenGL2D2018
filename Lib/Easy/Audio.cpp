@@ -803,6 +803,20 @@ public:
 		}
 	}
 
+    /**
+    * マスターボリュームを取得する.
+    *
+    * @return 設定されている音量.
+    */
+    virtual float GetMasterVolume() const override {
+      if (xaudio) {
+        float vol;
+        masteringVoice->GetVolume(&vol);
+        return vol;
+      }
+      return 0;
+    }
+
 private:
 	ComPtr<IXAudio2> xaudio;
 	IXAudio2MasteringVoice* masteringVoice;

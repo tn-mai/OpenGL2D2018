@@ -52,6 +52,7 @@ public:
 	virtual SoundPtr PrepareStream(const wchar_t*) = 0;
     virtual SoundPtr PrepareMFStream(const wchar_t*) = 0;
     virtual void SetMasterVolume(float) = 0;
+	virtual float GetMasterVolume() const = 0;
 
 private:
 	Engine(const Engine&) = delete;
