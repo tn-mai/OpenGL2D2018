@@ -185,6 +185,10 @@ bool LoadWaveFile(HANDLE hFile, WF& wf, std::vector<UINT32>& seekTable, std::vec
 
 /**
 * Soundの実装.
+*
+* ストリーミングを行わないオーディオクラス.
+* SEに適している.
+* 対応形式: WAV, XWM.
 */
 class SoundImpl : public Sound
 {
@@ -270,6 +274,10 @@ public:
 
 /**
 * Soundの実装.
+*
+* ストリーミングを行うオーディオクラス.
+* BGMに適している.
+* 対応形式: WAV, XWM.
 */
 class StreamSoundImpl : public Sound
 {
@@ -399,6 +407,10 @@ public:
 
 /**
 * Media Foundationを利用したストリームサウンドの実装.
+*
+* ストリーミングを行うオーディオクラス.
+* BGMに適している.
+* 対応形式: WAV, MP3, AAC, WMA.
 */
 class MFStreamSoundImpl : public Sound
 {
@@ -630,6 +642,12 @@ public:
 //	EngineImpl() : Engine(), xaudio(), masteringVoice(nullptr) {}
 //	virtual ~EngineImpl() {}
 
+  /**
+  * 音声再生エンジンを初期化する.
+  *
+  * @retval true  初期化成功.
+  * @retval false 初期化失敗.
+  */
   virtual bool Initialize() override {
     ComPtr<IXAudio2> tmpAudio;
     UINT32 flags = 0;
@@ -665,6 +683,9 @@ public:
     return true;
   }
 
+	/**
+	* エンジンを破棄する.
+	*/
 	virtual void Destroy() override {
 		streamSound.reset();
 		soundList.clear();
@@ -672,6 +693,16 @@ public:
 		xaudio.Reset();
 	}
 
+    /**
+    * エンジンの状態を更新する.
+    *
+    * 定期的に呼び出す必要がある.
+    *
+    * @retval true  更新成功.
+    * @retval false 更新失敗.
+    *
+    * @note 現在は常にtrueを返す.
+    */
     virtual bool Update() override {
       soundList.remove_if(
         [](const SoundList::value_type& p) { return (p.use_count() <= 1) && (p->GetState() & State_Stopped); }
@@ -693,6 +724,13 @@ public:
       return true;
     }
 
+	/**
+	* 音声を準備する(UTF-16文字列用).
+	*
+	* @param filename 音声ファイルのパス(UTF-16文字列).
+	*
+	* @return 音声オブジェクトへのポインタ.
+	*/
 	virtual SoundPtr Prepare(const wchar_t* filename) override {
 		ScopedHandle hFile = CreateFile2(filename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, nullptr);
 		if (!hFile) {
@@ -710,6 +748,15 @@ public:
 		return sound;
 	}
 
+	/**
+	* ストリーミングを行う音声を準備する(UTF-16文字列用).
+	*
+	* @param filename 音声ファイルのパス(UTF-16文字列).
+	*
+	* @return 音声オブジェクトへのポインタ.
+	*
+	* @note この関数は現在1つの音声しか再生できない.
+	*/
 	virtual SoundPtr PrepareStream(const wchar_t* filename) override {
 		streamSound.reset(new StreamSoundImpl(CreateFile2(filename, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, nullptr)));
 		if (!streamSound->handle) {
@@ -728,6 +775,16 @@ public:
 		return streamSound;
 	}
 
+    /**
+    * ストリーミングを行う音声を準備する(UTF-16文字列用).
+    *
+    * @param filename 音声ファイルのパス(UTF-16文字列).
+    *
+    * @return 音声オブジェクトへのポインタ.
+    *
+    * WindowsのMedia Foundationを利用してAACやMP3などの再生を可能にしている.
+    * PrepareStreamとは異なり、複数音声の同時再生を行うことができる.
+    */
     virtual SoundPtr PrepareMFStream(const wchar_t* filename) override {
       std::shared_ptr<MFStreamSoundImpl> mfs = std::make_shared<MFStreamSoundImpl>();
       mfs->Init(xaudio, attributes.Get(), filename);
@@ -735,7 +792,11 @@ public:
       return mfs;
     }
 
-
+	/**
+	* マスターボリュームを設定する.
+	*
+	* @param vol 設定する音量.
+	*/
 	virtual void SetMasterVolume(float vol) override {
 		if (xaudio) {
 			masteringVoice->SetVolume(vol);
