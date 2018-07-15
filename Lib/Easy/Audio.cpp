@@ -8,6 +8,7 @@
 #include <stdint.h>
 #include <wrl/client.h>
 #include <algorithm>
+#include <iostream>
 
 #include <mfidl.h>
 #include <mfapi.h>
@@ -656,6 +657,7 @@ public:
 #endif // NDEBUG
     HRESULT hr = XAudio2Create(&tmpAudio, flags);
     if (FAILED(hr)) {
+      std::cerr << "ERROR: XAudio2の作成に失敗." << std::endl;
       return false;
     }
     if (1) {
@@ -667,15 +669,18 @@ public:
     }
     hr = tmpAudio->CreateMasteringVoice(&masteringVoice);
     if (FAILED(hr)) {
+      std::cerr << "ERROR: XAudio2の音量設定に失敗." << std::endl;
       return false;
     }
 
     // Setup for Media foundation.
     mf = std::make_unique<MediaFoundationInitialize>();
     if (FAILED(MFCreateAttributes(attributes.GetAddressOf(), 1))) {
+      std::cerr << "ERROR: Media Foundationの属性オブジェクトの作成に失敗." << std::endl;
       return false;
     }
     if (FAILED(attributes->SetUINT32(MF_LOW_LATENCY, true))) {
+      std::cerr << "ERROR: Media Foundationのレイテンシの設定に失敗." << std::endl;
       return false;
     }
 
