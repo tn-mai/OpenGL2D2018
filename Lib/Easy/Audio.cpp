@@ -758,7 +758,7 @@ private:
     MFSoundList mfSoundList;
 };
 
-Engine& Engine::Get()
+Engine& Engine::Instance()
 {
 	static EngineImpl engine;
 	return engine;

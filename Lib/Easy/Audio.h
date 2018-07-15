@@ -40,7 +40,7 @@ typedef std::shared_ptr<Sound> SoundPtr;
 class Engine
 {
 public:
-	static Engine& Get();
+	static Engine& Instance();
 	
 	Engine() = default;
 
