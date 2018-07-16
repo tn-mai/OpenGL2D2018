@@ -168,23 +168,6 @@ int main()
   tlEnemy = FrameAnimation::Timeline::Create(enemyKeyFrames);
   tlBlast = FrameAnimation::Timeline::Create(blastKeyFrames);
 
-  // 使用する画像を用意.
-  sprBackground = Sprite("Res/UnknownPlanet.png");
-  sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
-  sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
-  sprPlayer.health = 1;
-
-  initializeActorList(std::begin(enemyList), std::end(enemyList));
-  initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
-  initializeActorList(std::begin(effectList), std::end(effectList));
-  enemyGenerationTimer = 2;
-
-  score = 0;
-
-  // 敵配置マップを読み込む.
-  enemyMap.Load("Res/EnemyMap.json");
-  mapCurrentPosX = mapProcessedX = windowWidth;
-
   initialize(&gameData.title);
 
   // ゲームループ.
@@ -617,8 +600,8 @@ bool initialize(TitleScene* scene)
 */
 void finalize(TitleScene* scene)
 {
-  scene->bg.Texture(nullptr);
-  scene->logo.Texture(nullptr);
+  scene->bg = Sprite();
+  scene->logo = Sprite();
 }
 
 /**
@@ -636,7 +619,7 @@ void processInput(GLFWEW::WindowRef window, TitleScene* scene)
   if (gamepad.buttonDown & GamePad::A) {
     scene->mode = scene->modeNextState;
     scene->timer = 1.0f;
-    Audio::Engine::Instance().Prepare("Res/Audio/Start.wav")->Play();
+    Audio::Engine::Instance().Prepare("Res/Audio/Start.xwm")->Play();
   }
 }
 
@@ -660,16 +643,23 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
   if (scene->mode == scene->modeStart) {
     scene->mode = scene->modeTitle;
   } else if (scene->mode == scene->modeNextState) {
-    gameData.gamestate = gameData.gamestateMain;
     finalize(scene);
-    initializeActorList(std::begin(enemyList), std::end(enemyList));
-    initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
-    initializeActorList(std::begin(effectList), std::end(effectList));
-    score = 0;
-    mapCurrentPosX = mapProcessedX = windowWidth;
+    gameData.gamestate = gameData.gamestateMain;
+
+    sprBackground = Sprite("Res/UnknownPlanet.png");
     sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
     sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
     sprPlayer.health = 1;
+
+    initializeActorList(std::begin(enemyList), std::end(enemyList));
+    initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
+    initializeActorList(std::begin(effectList), std::end(effectList));
+
+    score = 0;
+
+    enemyMap.Load("Res/EnemyMap.json");
+    mapCurrentPosX = mapProcessedX = windowWidth;
+
     Audio::EngineRef audio = Audio::Engine::Instance();
     seBlast = audio.Prepare("Res/Audio/Blast.xwm");
     sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
@@ -679,7 +669,7 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
 }
 
 /**
-* タイトル画面を更新する.
+* タイトル画面を描画する.
 *
 * @param window ゲームを管理するウィンドウ.
 * @param scene  タイトル画面用構造体のポインタ.
@@ -717,7 +707,7 @@ void render(GLFWEW::WindowRef window, TitleScene* scene)
 bool initialize(GameOverScene* scene)
 {
   scene->bg = Sprite("Res/UnknownPlanet.png");
-  scene->timer = 0.5f;
+  scene->timer = 0.5f; // 入力を受け付けない期間(秒).
   return true;
 }
 
@@ -728,7 +718,7 @@ bool initialize(GameOverScene* scene)
 */
 void finalize(GameOverScene* scene)
 {
-  scene->bg.Texture(nullptr);
+  scene->bg = Sprite();
 }
 
 /**
