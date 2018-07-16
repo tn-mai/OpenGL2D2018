@@ -309,7 +309,7 @@ public:
 	explicit StreamSoundImpl(HANDLE h) :
 		sourceVoice(nullptr), handle(h), state(State_Create), loop(false), currentPos(0), curBuf(0)
 	{
-		buf.resize(BUFFER_SIZE * MAX_BUFFER_COUNT);
+		buf.resize(MAX_BUFFER_COUNT);
 	}
 	virtual ~StreamSoundImpl() override {
 		if (sourceVoice) {
@@ -343,6 +343,9 @@ public:
 				return false;
 			}
 			state = State_Stopped;
+            lastSeekValue = 0;
+            currentPos = 0;
+            curBuf = 0;
 			return SUCCEEDED(sourceVoice->FlushSourceBuffers());
 		}
 		return false;
@@ -368,48 +371,52 @@ public:
 		return s.BuffersQueued ? (state | State_Prepared) : State_Stopped;
 	}
 
-	bool Update() {
-		if (!sourceVoice) {
-			return false;
-		}
-		const DWORD cbValid = std::min(BUFFER_SIZE, dataSize - currentPos);
-		if (cbValid == 0) {
-			return false;
-		}
-		XAUDIO2_VOICE_STATE state;
-		sourceVoice->GetState(&state);
-		if (state.BuffersQueued < MAX_BUFFER_COUNT - 1) {
-			SetFilePointer(handle, dataOffset + currentPos, nullptr, FILE_BEGIN);
+    bool Update() {
+      if (!sourceVoice) {
+        return false;
+      }
+      const DWORD cbValid = std::min(packedAlignedBufferSize, dataSize - currentPos);
+      if (cbValid == 0) {
+        return false;
+      }
+      XAUDIO2_VOICE_STATE state;
+      sourceVoice->GetState(&state);
+      if (state.BuffersQueued >= MAX_BUFFER_COUNT - 1) {
+        return true;
+      }
 
-			XAUDIO2_BUFFER buffer = {};
-			buffer.pAudioData = &buf[BUFFER_SIZE * curBuf];
-			buffer.Flags = cbValid == BUFFER_SIZE ? 0 : XAUDIO2_END_OF_STREAM;
-			if (seekTable.empty()) {
-				buffer.AudioBytes = cbValid;
-				if (!Read(handle, &buf[BUFFER_SIZE * curBuf], cbValid)) {
-					return false;
-				}
-				sourceVoice->SubmitSourceBuffer(&buffer, nullptr);
-				currentPos += cbValid;
-			}
-			else {
-				XAUDIO2_BUFFER_WMA bufWma = {};
-				bufWma.PacketCount = cbValid / packetSize;
-				bufWma.pDecodedPacketCumulativeBytes = seekTable.data() + (currentPos / packetSize);
-				buffer.AudioBytes = bufWma.PacketCount * packetSize;
-				if (!Read(handle, &buf[BUFFER_SIZE * curBuf], buffer.AudioBytes)) {
-					return false;
-				}
-				sourceVoice->SubmitSourceBuffer(&buffer, &bufWma);
-				currentPos += buffer.AudioBytes;
-			}
-			curBuf = (curBuf + 1) % MAX_BUFFER_COUNT;
-			if (loop && currentPos >= dataSize) {
-				currentPos = 0;
-			}
-		}
-		return true;
-	}
+      SetFilePointer(handle, dataOffset + currentPos, nullptr, FILE_BEGIN);
+      if (!Read(handle, buf[curBuf].data, cbValid)) {
+        return false;
+      }
+
+      XAUDIO2_BUFFER buffer = {};
+      buffer.pAudioData = buf[curBuf].data;
+      buffer.AudioBytes = cbValid;
+      buffer.Flags = cbValid == packedAlignedBufferSize ? 0 : XAUDIO2_END_OF_STREAM;
+      if (seekTable.empty()) {
+        sourceVoice->SubmitSourceBuffer(&buffer, nullptr);
+      } else {
+        XAUDIO2_BUFFER_WMA bufWma = {};
+        bufWma.PacketCount = cbValid / packetSize;
+        if (bufWma.PacketCount >= 0x100) {
+          std::cerr << "WARNING: PacketCountがバッファサイズを越えた." << std::endl;
+        }
+        bufWma.pDecodedPacketCumulativeBytes = buf[curBuf].seekTable;
+        const UINT32* pSeekTable = seekTable.data() + (currentPos / packetSize);
+        for (UINT32 i = 0; i < bufWma.PacketCount; ++i) {
+          buf[curBuf].seekTable[i] = pSeekTable[i] - lastSeekValue;
+        }
+        lastSeekValue = bufWma.pDecodedPacketCumulativeBytes[bufWma.PacketCount - 1];
+        sourceVoice->SubmitSourceBuffer(&buffer, &bufWma);
+      }
+      currentPos += buffer.AudioBytes;
+      curBuf = (curBuf + 1) % MAX_BUFFER_COUNT;
+      if (loop && currentPos >= dataSize) {
+        currentPos = 0;
+      }
+      return true;
+    }
 
 	virtual bool IsNull() const override { return false; }
 
@@ -420,15 +427,22 @@ public:
 	size_t dataSize;
 	size_t dataOffset;
 	size_t packetSize;
+    size_t packedAlignedBufferSize;
 
-	static const size_t BUFFER_SIZE = 0x10000;
-	static const int MAX_BUFFER_COUNT = 3;
+    static const size_t BUFFER_SIZE = 0x10000;
+    static const int MAX_BUFFER_COUNT = 3;
+    struct Sample {
+      uint8_t data[BUFFER_SIZE];
+      UINT32 seekTable[0x100];
+      DWORD length;
+    };
+    UINT32 lastSeekValue;
 
 	int state;
 	bool loop;
-	std::vector<uint8_t> buf;
+	std::vector<Sample> buf;
+    size_t curBuf;
 	size_t currentPos;
-	int curBuf;
 };
 
 /**
@@ -533,6 +547,9 @@ public:
         return false;
       }
       state = State_Stopped;
+      isEndOfStream = false;
+      curBuf = 0;
+      currentPos = 0;
       return SUCCEEDED(sourceVoice->FlushSourceBuffers());
     }
     return false;
@@ -846,6 +863,8 @@ public:
 		streamSound->dataOffset = wf.dataOffset;
 		streamSound->dataSize = wf.dataSize;
 		streamSound->packetSize = wf.u.ext.Format.nBlockAlign;
+        streamSound->packedAlignedBufferSize = (StreamSoundImpl::BUFFER_SIZE / streamSound->packetSize) * streamSound->packetSize;
+        streamSound->lastSeekValue = 0;
         streamSound->engine = shared_from_this();
         return streamSound;
 	}
