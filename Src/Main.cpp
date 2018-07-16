@@ -6,6 +6,7 @@
 #include "Sprite.h"
 #include "Font.h"
 #include "TiledMap.h"
+#include "Audio.h"
 #include <glm/gtc/constants.hpp>
 #include <random>
 
@@ -66,6 +67,9 @@ float mapProcessedX;
 std::mt19937 random; // 乱数を発生させる変数(乱数エンジン).
 float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
 int score; // プレイヤーのスコア.
+Audio::SoundPtr bgm; // BGM制御用変数.
+Audio::SoundPtr seBlast;
+Audio::SoundPtr sePlayerShot;
 
 /*
 * プロトタイプ宣言.
@@ -142,6 +146,10 @@ int main()
   if (!window.Initialize(windowWidth, windowHeight, title)) {
     return 1;
   }
+  Audio::EngineRef audio = Audio::Engine::Instance();
+  if (!audio.Initialize()) {
+    return 1;
+  }
   if (!Texture::Initialize()) {
     return 1;
   }
@@ -184,8 +192,10 @@ int main()
     processInput(window);
     update(window);
     render(window);
+    audio.Update();
   }
 
+  audio.Destroy();
   Texture::Finalize();
   return 0;
 }
@@ -230,6 +240,7 @@ void processInput(GLFWEW::WindowRef window)
 
     // 弾の発射.
     if (gamepad.buttonDown & GamePad::A) {
+      sePlayerShot->Play();
       Actor* bullet = findAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
       if (bullet != nullptr) {
         bullet->spr = Sprite("Res/Objects.png", sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
@@ -256,6 +267,7 @@ void update(GLFWEW::WindowRef window)
     return;
   } else if (gameData.gamestate == gameData.gamestateMain) {
     if (sprPlayer.health <= 0) {
+      bgm->Stop();
       gameData.gamestate = gameData.gamestateGameover;
       initialize(&gameData.gameOver);
       return;
@@ -496,6 +508,7 @@ void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
   enemy->health -= 1;
   if (enemy->health <= 0) {
     score += 100;
+    seBlast->Play();
     Actor* blast = findAvailableActor(std::begin(effectList), std::end(effectList));
     if (blast != nullptr) {
       blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
@@ -623,6 +636,7 @@ void processInput(GLFWEW::WindowRef window, TitleScene* scene)
   if (gamepad.buttonDown & GamePad::A) {
     scene->mode = scene->modeNextState;
     scene->timer = 1.0f;
+    Audio::Engine::Instance().Prepare("Res/Audio/Start.wav")->Play();
   }
 }
 
@@ -656,6 +670,11 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
     sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
     sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
     sprPlayer.health = 1;
+    Audio::EngineRef audio = Audio::Engine::Instance();
+    seBlast = audio.Prepare("Res/Audio/Blast.xwm");
+    sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
+    bgm = audio.Prepare(L"Res/Audio/Neolith.xwm");
+    bgm->Play(Audio::Flag_Loop);
   }
 }
 
