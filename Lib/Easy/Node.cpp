@@ -115,7 +115,7 @@ void Node::Tweener(const TweenAnimation::AnimatePtr& p)
 {
   tweener = p;
   if (tweener) {
-    tweener->Update(*this, 0);
+    Update(0);
   }
 }
 
