@@ -172,11 +172,6 @@ bool LoadWaveFile(HANDLE hFile, WF& wf, std::vector<UINT32>& seekTable, std::vec
 		if (!Read(hFile, seekTable.data(), wf.seekSize * 4)) {
 			return false;
 		}
-		// XWMAはPowerPC搭載のXBOX360用に開発されたため、データはビッグエンディアンになっている.
-		// X86はリトルエンディアンなので変換しなければならない.
-		for (auto& e : seekTable) {
-			e = _byteswap_ulong(e);
-		}
 	}
 	if (source) {
 		source->resize(wf.dataSize);
