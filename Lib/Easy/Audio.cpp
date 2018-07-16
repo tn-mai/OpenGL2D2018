@@ -19,6 +19,9 @@ using Microsoft::WRL::ComPtr;
 
 namespace Audio {
 
+class EngineImpl;
+using EngineImplPtr = std::shared_ptr<EngineImpl>;
+
 struct MediaFoundationInitialize {
   MediaFoundationInitialize() {
     success = SUCCEEDED(MFStartup(MF_VERSION, MFSTARTUP_LITE));
@@ -291,7 +294,8 @@ public:
 	virtual bool IsNull() const override { return false; }
 
 	int state;
-	IXAudio2SourceVoice* sourceVoice;
+    EngineImplPtr engine;
+    IXAudio2SourceVoice* sourceVoice;
 	std::vector<uint8_t> source;
 	std::vector<UINT32> seekTable;
 };
@@ -414,7 +418,8 @@ public:
 
 	virtual bool IsNull() const override { return false; }
 
-	IXAudio2SourceVoice* sourceVoice;
+    EngineImplPtr engine;
+    IXAudio2SourceVoice* sourceVoice;
 	std::vector<UINT32> seekTable;
 	ScopedHandle handle;
 	size_t dataSize;
@@ -643,7 +648,7 @@ public:
   }
 
   ComPtr<IMFSourceReader> sourceReader;
-
+  EngineImplPtr engine;
   IXAudio2SourceVoice* sourceVoice = nullptr;
 
   static const size_t BUFFER_SIZE = 0x20000;
@@ -664,7 +669,7 @@ public:
 /**
 * EngineÇÃé¿ëï.
 */
-class EngineImpl : public Engine
+class EngineImpl : public Engine, public std::enable_shared_from_this<EngineImpl>
 {
 public:
 //	EngineImpl() : Engine(), xaudio(), masteringVoice(nullptr) {}
@@ -677,6 +682,10 @@ public:
   * @retval false èâä˙âªé∏îs.
   */
   virtual bool Initialize() override {
+    if (xaudio) {
+      std::cerr << "WARNING: Audio::EngineÇÕèâä˙âªçœÇ›Ç≈Ç∑." << std::endl;
+      return true;
+    }
     ComPtr<IXAudio2> tmpAudio;
     UINT32 flags = 0;
 #ifndef NDEBUG
@@ -710,8 +719,8 @@ public:
       std::cerr << "ERROR: Media FoundationÇÃÉåÉCÉeÉìÉVÇÃê›íËÇ…é∏îs." << std::endl;
       return false;
     }
-
     xaudio.Swap(std::move(tmpAudio));
+
     return true;
   }
 
@@ -722,7 +731,6 @@ public:
 		streamSound.reset();
 		soundList.clear();
         mfSoundList.clear();
-		xaudio.Reset();
 	}
 
     /**
@@ -814,6 +822,7 @@ public:
 		if (FAILED(xaudio->CreateSourceVoice(&sound->sourceVoice, &wf.u.ext.Format))) {
 			return nullptr;
 		}
+        sound->engine = shared_from_this();
 		soundList.push_back(sound);
 		return sound;
 	}
@@ -842,7 +851,8 @@ public:
 		streamSound->dataOffset = wf.dataOffset;
 		streamSound->dataSize = wf.dataSize;
 		streamSound->packetSize = wf.u.ext.Format.nBlockAlign;
-		return streamSound;
+        streamSound->engine = shared_from_this();
+        return streamSound;
 	}
 
     /**
@@ -860,6 +870,7 @@ public:
       if (!mfs->Init(xaudio, attributes.Get(), filename)) {
         return nullptr;
       }
+      mfs->engine = shared_from_this();
       mfSoundList.push_back(mfs);
       return mfs;
     }
@@ -907,8 +918,8 @@ private:
 
 Engine& Engine::Instance()
 {
-	static EngineImpl engine;
-	return engine;
+	static std::shared_ptr<EngineImpl> engine = std::make_shared<EngineImpl>();
+	return *engine;
 }
 
 } // namespace Audio
