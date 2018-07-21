@@ -200,7 +200,9 @@ void processInput(GLFWEW::WindowRef window)
     return;
   }
 
-  if (sprPlayer.health > 0) {
+  if (sprPlayer.health <= 0) {
+    playerVelocity = glm::vec3(0, 0, 0);
+  } else {
     // Ž©‹@‚Ì‘¬“x‚ðÝ’è‚·‚é.
     const GamePad gamepad = window.GetGamePad();
     if (gamepad.buttons & GamePad::DPAD_UP) {
