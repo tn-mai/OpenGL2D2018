@@ -1,8 +1,7 @@
+#pragma once
 /**
 * @file TitleScene.h
 */
-#ifndef TITLESCENE_H_INCLUDED
-#define TITLESCENE_H_INCLUDED
 #include "GLFWEW.h"
 #include "Sprite.h"
 
@@ -24,5 +23,3 @@ void finalize(TitleScene*);
 void processInput(GLFWEW::WindowRef, TitleScene*);
 void update(GLFWEW::WindowRef, TitleScene*);
 void render(GLFWEW::WindowRef, TitleScene*);
-
-#endif // TITLESCENE_H_INCLUDED
