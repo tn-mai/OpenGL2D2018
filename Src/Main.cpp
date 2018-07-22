@@ -463,9 +463,19 @@ bool initialize(MainScene* scene)
 */
 void finalize(MainScene* scene)
 {
-  bgm->Stop();
   sprBackground = Sprite();
   sprPlayer.spr = Sprite();
+
+  initializeActorList(std::begin(enemyList), std::end(enemyList));
+  initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
+  initializeActorList(std::begin(effectList), std::end(effectList));
+
+  enemyMap.Unload();
+
+  bgm->Stop();
+  seBlast.reset();
+  sePlayerShot.reset();
+  bgm.reset();
 }
 
 /**
@@ -495,6 +505,7 @@ bool detectCollision(const Rect* lhs, const Rect* rhs)
 void initializeActorList(Actor* first, Actor* last)
 {
   for (Actor* i = first; i != last; ++i) {
+    i->spr = Sprite();
     i->health = 0;
   }
 }
