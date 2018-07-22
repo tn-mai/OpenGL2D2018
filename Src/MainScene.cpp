@@ -53,7 +53,7 @@ bool initialize(MainScene* scene)
   scene->score = 0;
 
   scene->enemyMap.Load("Res/EnemyMap.json");
-  scene->mapCurrentPosX = scene->mapProcessedX = GLFWEW::Window::Instance().Width();
+  scene->mapCurrentPosX = scene->mapProcessedX = (float)GLFWEW::Window::Instance().Width();
 
   Audio::EngineRef audio = Audio::Engine::Instance();
   scene->seBlast = audio.Prepare("Res/Audio/Blast.xwm");
@@ -169,9 +169,6 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
 
   // 敵の出現.
 #if 1
-  const GLFWEW::WindowRef window = GLFWEW::Window::Instance();
-  const int windowWidth = window.Width();
-  const int windowHeight = window.Height();
   const TiledMap::Layer& tiledMapLayer = scene->enemyMap.GetLayer(0);
   const glm::vec2 tileSize = scene->enemyMap.GetTileSet(tiledMapLayer.tilesetNo).size;
   // 敵配置マップ参照位置の更新.
@@ -191,8 +188,8 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
       if (tiledMapLayer.At(mapY, mapX) == enemyId) {
         Actor* enemy = findAvailableActor(std::begin(scene->enemyList), std::end(scene->enemyList));
         if (enemy != nullptr) {
-          const float y = windowHeight * 0.5f - static_cast<float>(mapY * tileSize.x);
-          enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y, 0), Rect(480, 0, 32, 32));
+          const float y = window.Height() * 0.5f - static_cast<float>(mapY * tileSize.x);
+          enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * window.Width(), y, 0), Rect(480, 0, 32, 32));
           enemy->spr.Animator(FrameAnimation::Animate::Create(scene->tlEnemy));
           namespace TA = TweenAnimation;
           TA::SequencePtr seq = TA::Sequence::Create(4);
