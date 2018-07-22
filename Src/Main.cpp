@@ -90,25 +90,6 @@ void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
 void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
 
 /**
-* タイトル画面で使用する構造体.
-*/
-struct TitleScene
-{
-  Sprite bg;
-  Sprite logo;
-  const int modeStart = 0;
-  const int modeTitle = 1;
-  const int modeNextState = 2;
-  int mode;
-  float timer;
-};
-bool initialize(TitleScene*);
-void finalize(TitleScene*);
-void processInput(GLFWEW::WindowRef, TitleScene*);
-void update(GLFWEW::WindowRef, TitleScene*);
-void render(GLFWEW::WindowRef, TitleScene*);
-
-/**
 * ゲームオーバー画面で使用する構造体.
 */
 struct GameOverScene
