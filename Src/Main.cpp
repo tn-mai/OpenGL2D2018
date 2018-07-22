@@ -259,7 +259,7 @@ void update(GLFWEW::WindowRef window)
   } else if (gameData.gamestate == gameData.gamestateMain) {
     update(window, &gameData.main);
     if (sprPlayer.health <= 0) {
-      bgm->Stop();
+      finalize(&gameData.main);
       gameData.gamestate = gameData.gamestateGameover;
       initialize(&gameData.gameOver);
       return;
@@ -454,6 +454,18 @@ bool initialize(MainScene* scene)
   bgm->Play(Audio::Flag_Loop);
 
   return true;
+}
+
+/**
+* メイン画面の終了処理を行う.
+*
+* @param scene  メイン画面用構造体のポインタ.
+*/
+void finalize(MainScene* scene)
+{
+  bgm->Stop();
+  sprBackground = Sprite();
+  sprPlayer.spr = Sprite();
 }
 
 /**
