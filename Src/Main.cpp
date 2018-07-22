@@ -423,6 +423,40 @@ void render(GLFWEW::WindowRef window, MainScene* scene)
 }
 
 /**
+* メイン画面用の構造体の初期設定を行う.
+*
+* @param scene     メイン画面用構造体のポインタ.
+* @param gamestate ゲーム状態を表す変数のポインタ.
+*
+* @retval true  初期化成功.
+* @retval false 初期化失敗.
+*/
+bool initialize(MainScene* scene)
+{
+  sprBackground = Sprite("Res/UnknownPlanet.png");
+  sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
+  sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
+  sprPlayer.health = 1;
+
+  initializeActorList(std::begin(enemyList), std::end(enemyList));
+  initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
+  initializeActorList(std::begin(effectList), std::end(effectList));
+
+  score = 0;
+
+  enemyMap.Load("Res/EnemyMap.json");
+  mapCurrentPosX = mapProcessedX = windowWidth;
+
+  Audio::EngineRef audio = Audio::Engine::Instance();
+  seBlast = audio.Prepare("Res/Audio/Blast.xwm");
+  sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
+  bgm = audio.Prepare(L"Res/Audio/Neolith.xwm");
+  bgm->Play(Audio::Flag_Loop);
+
+  return true;
+}
+
+/**
 * 2つの長方形の衝突状態を調べる.
 *
 * @param lhs 長方形その1.
@@ -675,26 +709,7 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
   } else if (scene->mode == scene->modeNextState) {
     finalize(scene);
     gameData.gamestate = gameData.gamestateMain;
-
-    sprBackground = Sprite("Res/UnknownPlanet.png");
-    sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
-    sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
-    sprPlayer.health = 1;
-
-    initializeActorList(std::begin(enemyList), std::end(enemyList));
-    initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
-    initializeActorList(std::begin(effectList), std::end(effectList));
-
-    score = 0;
-
-    enemyMap.Load("Res/EnemyMap.json");
-    mapCurrentPosX = mapProcessedX = windowWidth;
-
-    Audio::EngineRef audio = Audio::Engine::Instance();
-    seBlast = audio.Prepare("Res/Audio/Blast.xwm");
-    sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
-    bgm = audio.Prepare(L"Res/Audio/Neolith.xwm");
-    bgm->Play(Audio::Flag_Loop);
+    initialize(&gameData.main);
   }
 }
 
