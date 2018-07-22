@@ -59,6 +59,12 @@
     <ClCompile Include="Lib\Easy\TiledMap.cpp">
       <Filter>Lib\Easy</Filter>
     </ClCompile>
+    <ClCompile Include="Src\TitleScene.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClCompile Include="Src\GameOverScene.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lib\Easy\Audio.h">

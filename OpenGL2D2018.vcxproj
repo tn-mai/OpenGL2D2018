@@ -32,7 +32,9 @@
     <ClCompile Include="Lib\Easy\TiledMap.cpp" />
     <ClCompile Include="Lib\Easy\TweenAnimation.cpp" />
     <ClCompile Include="Lib\Easy\UniformBuffer.cpp" />
+    <ClCompile Include="Src\GameOverScene.cpp" />
     <ClCompile Include="Src\Main.cpp" />
+    <ClCompile Include="Src\TitleScene.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lib\Easy\Audio.h" />
