@@ -130,6 +130,15 @@ bool TiledMap::Load(const char* filename, uint32_t drawable)
 }
 
 /**
+* タイルマップを破棄する.
+*/
+void TiledMap::Unload()
+{
+  layers.clear();
+  tilesets.clear();
+}
+
+/**
 * タイルマップを更新する.
 */
 void TiledMap::Update()

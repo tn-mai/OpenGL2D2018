@@ -64,6 +64,7 @@ public:
   ~TiledMap() = default;
 
   bool Load(const char* filename, uint32_t drawable = 0);
+  void Unload();
   void Update();
   void Draw(const glm::vec2&) const;
   const glm::vec2& Position() const { return position; }
