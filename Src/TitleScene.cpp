@@ -92,7 +92,7 @@ void render(GLFWEW::WindowRef window, TitleScene* scene)
   renderer.AddVertices(scene->bg);
   renderer.AddVertices(scene->logo);
   renderer.EndUpdate();
-  renderer.Draw(glm::vec2(windowWidth, windowHeight));
+  renderer.Draw(glm::vec2(window.Width(), window.Height()));
 
   fontRenderer.BeginUpdate();
   if (scene->mode == scene->modeTitle) {

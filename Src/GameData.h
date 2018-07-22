@@ -9,9 +9,6 @@ struct TitleScene;
 struct GameOverScene;
 struct MainScene;
 
-extern const int windowWidth; // ウィンドウの幅.
-extern const int windowHeight; // ウィンドウの高さ.
-
 extern SpriteRenderer renderer; // スプライト描画用変数.
 extern FontRenderer fontRenderer; // フォント描画用変数.
 
