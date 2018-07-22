@@ -60,27 +60,19 @@ Actor* findAvailableActor(Actor*, Actor*);
 void updateActorList(Actor*, Actor*, float deltaTime);
 void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
-struct MainScene;
-using CollisionHandlerType = void(*)(Actor*, Actor*, MainScene*);
-void detectCollision(Actor* first0, Actor* last0, Actor* first1, Actor* last1, MainScene*, CollisionHandlerType function);
-void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy, MainScene*);
-void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene*);
+using CollisionHandlerType = void(*)(Actor*, Actor*);
+void detectCollision(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
+void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
+void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
 
-/**
-* ゲームの状態管理.
-*/
-struct GameData
-{
-  const int gamestateTitle = 0;
-  const int gamestateMain = 1;
-  const int gamestateGameover = 2;
-  int gamestate; // ゲームの状態.
+const int gamestateTitle = 0;
+const int gamestateMain = 1;
+const int gamestateGameover = 2;
+int gamestate; // ゲームの状態.
 
-  TitleScene title;
-  GameOverScene gameOver;
-  MainScene main;
-};
-GameData gameData;
+TitleScene titleScene;
+GameOverScene gameOverScene;
+MainScene mainScene;
 
 /**
 * プログラムのエントリーポイント.
@@ -114,7 +106,7 @@ int main()
   tlEnemy = FrameAnimation::Timeline::Create(enemyKeyFrames);
   tlBlast = FrameAnimation::Timeline::Create(blastKeyFrames);
 
-  initialize(&gameData.title);
+  initialize(&titleScene);
 
   // ゲームループ.
   while (!window.ShouldClose()) {
@@ -138,14 +130,14 @@ void processInput(GLFWEW::WindowRef window)
 {
   window.Update();
 
-  if (gameData.gamestate == gameData.gamestateTitle) {
-    processInput(window, &gameData.title);
+  if (gamestate == gamestateTitle) {
+    processInput(window, &titleScene);
     return;
-  } else if (gameData.gamestate == gameData.gamestateGameover) {
-    processInput(window, &gameData.gameOver);
+  } else if (gamestate == gamestateGameover) {
+    processInput(window, &gameOverScene);
     return;
-  } else if (gameData.gamestate == gameData.gamestateMain) {
-    processInput(window, &gameData.main);
+  } else if (gamestate == gamestateMain) {
+    processInput(window, &mainScene);
   }
 }
 
@@ -201,18 +193,18 @@ void processInput(GLFWEW::WindowRef window, MainScene* scene)
 */
 void update(GLFWEW::WindowRef window)
 {
-  if (gameData.gamestate == gameData.gamestateTitle) {
-    update(window, &gameData.title);
+  if (gamestate == gamestateTitle) {
+    update(window, &titleScene);
     return;
-  } else if (gameData.gamestate == gameData.gamestateGameover) {
-    update(window, &gameData.gameOver);
+  } else if (gamestate == gamestateGameover) {
+    update(window, &gameOverScene);
     return;
-  } else if (gameData.gamestate == gameData.gamestateMain) {
-    update(window, &gameData.main);
-    if (gameData.main.sprPlayer.health <= 0) {
-      finalize(&gameData.main);
-      gameData.gamestate = gameData.gamestateGameover;
-      initialize(&gameData.gameOver);
+  } else if (gamestate == gamestateMain) {
+    update(window, &mainScene);
+    if (mainScene.sprPlayer.health <= 0) {
+      finalize(&mainScene);
+      gamestate = gamestateGameover;
+      initialize(&gameOverScene);
       return;
     }
   }
@@ -315,14 +307,12 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
   detectCollision(
     std::begin(scene->playerBulletList), std::end(scene->playerBulletList),
     std::begin(scene->enemyList), std::end(scene->enemyList),
-    &gameData.main,
     playerBulletAndEnemyContactHandler);
 
   // 自機と敵の衝突判定.
   detectCollision(
     &scene->sprPlayer, &scene->sprPlayer + 1,
     std::begin(scene->enemyList), std::end(scene->enemyList),
-    &gameData.main,
     playerAndEnemyContactHandler
   );
 }
@@ -334,14 +324,14 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
 */
 void render(GLFWEW::WindowRef window)
 {
-  if (gameData.gamestate == gameData.gamestateTitle) {
-    render(window, &gameData.title);
+  if (gamestate == gamestateTitle) {
+    render(window, &titleScene);
     return;
-  } else if (gameData.gamestate == gameData.gamestateGameover) {
-    render(window, &gameData.gameOver);
+  } else if (gamestate == gamestateGameover) {
+    render(window, &gameOverScene);
     return;
-  } else if (gameData.gamestate == gameData.gamestateMain) {
-    render(window, &gameData.main);
+  } else if (gamestate == gamestateMain) {
+    render(window, &mainScene);
     return;
   }
 }
@@ -524,16 +514,15 @@ void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* rend
 *
 * @param bullet 自機の弾のポインタ.
 * @param enemy  敵のポインタ.
-* @param scene  メイン画面用構造体のポインタ.
 */
-void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy, MainScene* scene)
+void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
 {
   bullet->health -= 1;
   enemy->health -= 1;
   if (enemy->health <= 0) {
-    scene->score += 100;
-    scene->seBlast->Play();
-    Actor* blast = findAvailableActor(std::begin(scene->effectList), std::end(scene->effectList));
+    mainScene.score += 100;
+    mainScene.seBlast->Play();
+    Actor* blast = findAvailableActor(std::begin(mainScene.effectList), std::end(mainScene.effectList));
     if (blast != nullptr) {
       blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
       blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
@@ -549,9 +538,8 @@ void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy, MainScene
 *
 * @param bullet 自機のポインタ.
 * @param enemy  敵のポインタ.
-* @param scene  メイン画面用構造体のポインタ.
 */
-void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene* scene)
+void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
 {
   if (player->health > enemy->health) {
     player->health -= enemy->health;
@@ -561,8 +549,8 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene* scen
     player->health = 0;
   }
   if (enemy->health <= 0) {
-    scene->score += 100;
-    Actor* blast = findAvailableActor(std::begin(scene->effectList), std::end(scene->effectList));
+    mainScene.score += 100;
+    Actor* blast = findAvailableActor(std::begin(mainScene.effectList), std::end(mainScene.effectList));
     if (blast != nullptr) {
       blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
       blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
@@ -572,7 +560,7 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene* scen
     }
   }
   if (player->health <= 0) {
-    Actor* blast = findAvailableActor(std::begin(scene->effectList), std::end(scene->effectList));
+    Actor* blast = findAvailableActor(std::begin(mainScene.effectList), std::end(mainScene.effectList));
     if (blast != nullptr) {
       blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
       blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
@@ -591,10 +579,9 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene* scen
 * @param lastA     衝突させる配列Aの終端ポインタ.
 * @param firstB    衝突させる配列Bの先頭ポインタ.
 * @param lastB     衝突させる配列Bの終端ポインタ.
-* @param scene     メイン画面用構造体のポインタ.
 * @param function  A-B間で衝突が検出されたときに実行する関数.
 */
-void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, MainScene* scene, CollisionHandlerType function)
+void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, CollisionHandlerType function)
 {
   for (Actor* a = firstA; a != lastA; ++a) {
     if (a->health <= 0) {
@@ -609,7 +596,7 @@ void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, M
       Rect rectB = b->collisionShape;
       rectB.origin += glm::vec2(b->spr.Position());
       if (detectCollision(&rectA, &rectB)) {
-        function(a, b, scene);
+        function(a, b);
         if (a->health <= 0) {
           break;
         }
@@ -687,8 +674,8 @@ void update(GLFWEW::WindowRef window, TitleScene* scene)
     scene->mode = scene->modeTitle;
   } else if (scene->mode == scene->modeNextState) {
     finalize(scene);
-    gameData.gamestate = gameData.gamestateMain;
-    initialize(&gameData.main);
+    gamestate = gamestateMain;
+    initialize(&mainScene);
   }
 }
 
@@ -756,8 +743,8 @@ void processInput(GLFWEW::WindowRef window, GameOverScene* scene)
   if (scene->timer <= 0) {
     const GamePad gamepad = window.GetGamePad();
     if (gamepad.buttonDown & GamePad::A) {
-      gameData.gamestate = gameData.gamestateTitle;
-      initialize(&gameData.title);
+      gamestate = gamestateTitle;
+      initialize(&titleScene);
       finalize(scene);
     }
   }
