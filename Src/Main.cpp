@@ -202,6 +202,7 @@ void processInput(GLFWEW::WindowRef window)
 * プレイヤーの入力を処理する.
 *
 * @param window ゲームを管理するウィンドウ.
+* @param scene  メイン画面用構造体のポインタ.
 */
 void processInput(GLFWEW::WindowRef window, MainScene* scene)
 {
@@ -256,6 +257,7 @@ void update(GLFWEW::WindowRef window)
     update(window, &gameData.gameOver);
     return;
   } else if (gameData.gamestate == gameData.gamestateMain) {
+    update(window, &gameData.main);
     if (sprPlayer.health <= 0) {
       bgm->Stop();
       gameData.gamestate = gameData.gamestateGameover;
@@ -263,7 +265,16 @@ void update(GLFWEW::WindowRef window)
       return;
     }
   }
+}
 
+/**
+* ゲームの状態を更新する.
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  メイン画面用構造体のポインタ.
+*/
+void update(GLFWEW::WindowRef window, MainScene* scene)
+{
   const float deltaTime = window.DeltaTime();
 
   // 自機の移動.
