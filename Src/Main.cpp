@@ -30,12 +30,6 @@ struct Actor
 */
 SpriteRenderer renderer; // スプライト描画用変数.
 FontRenderer fontRenderer; // フォント描画用変数.
-Sprite sprBackground; // 背景用スプライト.
-Actor sprPlayer;     // 自機用スプライト.
-glm::vec3 playerVelocity; // 自機の移動速度.
-Actor enemyList[128]; // 敵のリスト.
-Actor playerBulletList[128]; // 自機の弾のリスト.
-Actor effectList[128]; // 爆発などの特殊効果用スプライトのリスト.
 
 // 敵のアニメーション.
 const FrameAnimation::KeyFrame enemyKeyFrames[] = {
@@ -57,20 +51,10 @@ const FrameAnimation::KeyFrame blastKeyFrames[] = {
 };
 FrameAnimation::TimelinePtr tlBlast;
 
-// 敵の出現を制御するためのデータ.
-TiledMap enemyMap;
-float mapCurrentPosX;
-float mapProcessedX;
-
 /*
 * ゲームのルールに関する変数.
 */
 std::mt19937 random; // 乱数を発生させる変数(乱数エンジン).
-float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
-int score; // プレイヤーのスコア.
-Audio::SoundPtr bgm; // BGM制御用変数.
-Audio::SoundPtr seBlast;
-Audio::SoundPtr sePlayerShot;
 
 /*
 * プロトタイプ宣言.
@@ -84,10 +68,11 @@ Actor* findAvailableActor(Actor*, Actor*);
 void updateActorList(Actor*, Actor*, float deltaTime);
 void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* renderer);
 
-using CollisionHandlerType = void(*)(Actor*, Actor*);
-void detectCollision(Actor* first0, Actor* last0, Actor* first1, Actor* last1, CollisionHandlerType function);
-void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
-void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
+struct MainScene;
+using CollisionHandlerType = void(*)(Actor*, Actor*, MainScene*);
+void detectCollision(Actor* first0, Actor* last0, Actor* first1, Actor* last1, MainScene*, CollisionHandlerType function);
+void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy, MainScene*);
+void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene*);
 
 /**
 * ゲームオーバー画面で使用する構造体.
@@ -108,6 +93,23 @@ void render(GLFWEW::WindowRef, GameOverScene*);
 */
 struct MainScene
 {
+  Sprite sprBackground; // 背景用スプライト.
+  Actor sprPlayer;     // 自機用スプライト.
+  glm::vec3 playerVelocity; // 自機の移動速度.
+  Actor enemyList[128]; // 敵のリスト.
+  Actor playerBulletList[128]; // 自機の弾のリスト.
+  Actor effectList[128]; // 爆発などの特殊効果用スプライトのリスト.
+
+  float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
+  int score; // プレイヤーのスコア.
+  Audio::SoundPtr bgm; // BGM制御用変数.
+  Audio::SoundPtr seBlast;
+  Audio::SoundPtr sePlayerShot;
+
+  // 敵の出現を制御するためのデータ.
+  TiledMap enemyMap;
+  float mapCurrentPosX;
+  float mapProcessedX;
 };
 bool initialize(MainScene*);
 void finalize(MainScene*);
@@ -206,35 +208,35 @@ void processInput(GLFWEW::WindowRef window)
 */
 void processInput(GLFWEW::WindowRef window, MainScene* scene)
 {
-  if (sprPlayer.health <= 0) {
-    playerVelocity = glm::vec3(0, 0, 0);
+  if (scene->sprPlayer.health <= 0) {
+    scene->playerVelocity = glm::vec3(0, 0, 0);
   } else {
     // 自機の速度を設定する.
     const GamePad gamepad = window.GetGamePad();
     if (gamepad.buttons & GamePad::DPAD_UP) {
-      playerVelocity.y = 1;
+      scene->playerVelocity.y = 1;
     } else if (gamepad.buttons & GamePad::DPAD_DOWN) {
-      playerVelocity.y = -1;
+      scene->playerVelocity.y = -1;
     } else {
-      playerVelocity.y = 0;
+      scene->playerVelocity.y = 0;
     }
     if (gamepad.buttons & GamePad::DPAD_RIGHT) {
-      playerVelocity.x = 1;
+      scene->playerVelocity.x = 1;
     } else if (gamepad.buttons & GamePad::DPAD_LEFT) {
-      playerVelocity.x = -1;
+      scene->playerVelocity.x = -1;
     } else {
-      playerVelocity.x = 0;
+      scene->playerVelocity.x = 0;
     }
-    if (playerVelocity.x || playerVelocity.y) {
-      playerVelocity = glm::normalize(playerVelocity) * 400.0f;
+    if (scene->playerVelocity.x || scene->playerVelocity.y) {
+      scene->playerVelocity = glm::normalize(scene->playerVelocity) * 400.0f;
     }
 
     // 弾の発射.
     if (gamepad.buttonDown & GamePad::A) {
-      sePlayerShot->Play();
-      Actor* bullet = findAvailableActor(std::begin(playerBulletList), std::end(playerBulletList));
+      scene->sePlayerShot->Play();
+      Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
       if (bullet != nullptr) {
-        bullet->spr = Sprite("Res/Objects.png", sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
+        bullet->spr = Sprite("Res/Objects.png", scene->sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
         bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
         bullet->collisionShape = Rect(-16, -8, 32, 16);
         bullet->health = 1;
@@ -258,7 +260,7 @@ void update(GLFWEW::WindowRef window)
     return;
   } else if (gameData.gamestate == gameData.gamestateMain) {
     update(window, &gameData.main);
-    if (sprPlayer.health <= 0) {
+    if (gameData.main.sprPlayer.health <= 0) {
       finalize(&gameData.main);
       gameData.gamestate = gameData.gamestateGameover;
       initialize(&gameData.gameOver);
@@ -278,10 +280,10 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
   const float deltaTime = window.DeltaTime();
 
   // 自機の移動.
-  if (sprPlayer.health > 0) {
-    if (playerVelocity.x || playerVelocity.y) {
-      glm::vec3 newPos = sprPlayer.spr.Position() + playerVelocity * deltaTime;
-      const Rect playerRect = sprPlayer.spr.Rectangle();
+  if (scene->sprPlayer.health > 0) {
+    if (scene->playerVelocity.x || scene->playerVelocity.y) {
+      glm::vec3 newPos = scene->sprPlayer.spr.Position() + scene->playerVelocity * deltaTime;
+      const Rect playerRect = scene->sprPlayer.spr.Rectangle();
       if (newPos.x < -0.5f * (windowWidth - playerRect.size.x)) {
         newPos.x = -0.5f * (windowWidth - playerRect.size.x);
       } else if (newPos.x > 0.5f * (windowWidth - playerRect.size.x)) {
@@ -292,31 +294,31 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
       } else if (newPos.y > 0.5f * (windowHeight - playerRect.size.y)) {
         newPos.y = 0.5f * (windowHeight - playerRect.size.y);
       }
-      sprPlayer.spr.Position(newPos);
+      scene->sprPlayer.spr.Position(newPos);
     }
-    sprPlayer.spr.Update(deltaTime);
+    scene->sprPlayer.spr.Update(deltaTime);
   }
 
   // 敵の出現.
 #if 1
-  const TiledMap::Layer& tiledMapLayer = enemyMap.GetLayer(0);
-  const glm::vec2 tileSize = enemyMap.GetTileSet(tiledMapLayer.tilesetNo).size;
+  const TiledMap::Layer& tiledMapLayer = scene->enemyMap.GetLayer(0);
+  const glm::vec2 tileSize = scene->enemyMap.GetTileSet(tiledMapLayer.tilesetNo).size;
   // 敵配置マップ参照位置の更新.
   const float enemyMapScrollSpeed = 100; // 更新速度.
-  mapCurrentPosX += enemyMapScrollSpeed * deltaTime;
-  if (mapCurrentPosX >= tiledMapLayer.size.x * tileSize.x) {
+  scene->mapCurrentPosX += enemyMapScrollSpeed * deltaTime;
+  if (scene->mapCurrentPosX >= tiledMapLayer.size.x * tileSize.x) {
     // 終端を超えたら先頭にループ.
-    mapCurrentPosX = 0;
-    mapProcessedX = 0;
+    scene->mapCurrentPosX = 0;
+    scene->mapProcessedX = 0;
   }
   // 次の列に到達したらデータを読む.
-  if (mapCurrentPosX - mapProcessedX >= tileSize.x) {
-    mapProcessedX += tileSize.x;
-    const int mapX = static_cast<int>(mapProcessedX / tileSize.x);
+  if (scene->mapCurrentPosX - scene->mapProcessedX >= tileSize.x) {
+    scene->mapProcessedX += tileSize.x;
+    const int mapX = static_cast<int>(scene->mapProcessedX / tileSize.x);
     for (int mapY = 0; mapY < tiledMapLayer.size.y; ++mapY) {
       const int enemyId = 256; // 敵とみなすタイルID.
       if (tiledMapLayer.At(mapY, mapX) == enemyId) {
-        Actor* enemy = findAvailableActor(std::begin(enemyList), std::end(enemyList));
+        Actor* enemy = findAvailableActor(std::begin(scene->enemyList), std::end(scene->enemyList));
         if (enemy != nullptr) {
           const float y = windowHeight * 0.5f - static_cast<float>(mapY * tileSize.x);
           enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * windowWidth, y, 0), Rect(480, 0, 32, 32));
@@ -356,20 +358,22 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
 #endif
 
   // Actorの更新.
-  updateActorList(std::begin(enemyList), std::end(enemyList), deltaTime);
-  updateActorList(std::begin(playerBulletList), std::end(playerBulletList), deltaTime);
-  updateActorList(std::begin(effectList), std::end(effectList), deltaTime);
+  updateActorList(std::begin(scene->enemyList), std::end(scene->enemyList), deltaTime);
+  updateActorList(std::begin(scene->playerBulletList), std::end(scene->playerBulletList), deltaTime);
+  updateActorList(std::begin(scene->effectList), std::end(scene->effectList), deltaTime);
 
   // 自機の弾と敵の衝突判定.
   detectCollision(
-    std::begin(playerBulletList), std::end(playerBulletList),
-    std::begin(enemyList), std::end(enemyList),
+    std::begin(scene->playerBulletList), std::end(scene->playerBulletList),
+    std::begin(scene->enemyList), std::end(scene->enemyList),
+    &gameData.main,
     playerBulletAndEnemyContactHandler);
 
   // 自機と敵の衝突判定.
   detectCollision(
-    &sprPlayer, &sprPlayer + 1,
-    std::begin(enemyList), std::end(enemyList),
+    &scene->sprPlayer, &scene->sprPlayer + 1,
+    std::begin(scene->enemyList), std::end(scene->enemyList),
+    &gameData.main,
     playerAndEnemyContactHandler
   );
 }
@@ -402,19 +406,19 @@ void render(GLFWEW::WindowRef window)
 void render(GLFWEW::WindowRef window, MainScene* scene)
 {
   renderer.BeginUpdate();
-  renderer.AddVertices(sprBackground);
-  if (sprPlayer.health > 0) {
-    renderer.AddVertices(sprPlayer.spr);
+  renderer.AddVertices(scene->sprBackground);
+  if (scene->sprPlayer.health > 0) {
+    renderer.AddVertices(scene->sprPlayer.spr);
   }
-  renderActorList(std::begin(enemyList), std::end(enemyList), &renderer);
-  renderActorList(std::begin(playerBulletList), std::end(playerBulletList), &renderer);
-  renderActorList(std::begin(effectList), std::end(effectList), &renderer);
+  renderActorList(std::begin(scene->enemyList), std::end(scene->enemyList), &renderer);
+  renderActorList(std::begin(scene->playerBulletList), std::end(scene->playerBulletList), &renderer);
+  renderActorList(std::begin(scene->effectList), std::end(scene->effectList), &renderer);
   renderer.EndUpdate();
   renderer.Draw({ windowWidth, windowHeight });
 
   fontRenderer.BeginUpdate();
   char str[9];
-  snprintf(str, 9, "%08d", score);
+  snprintf(str, 9, "%08d", scene->score);
   fontRenderer.AddString(glm::vec2(-64 , 300), str);
   fontRenderer.EndUpdate();
   fontRenderer.Draw();
@@ -433,25 +437,25 @@ void render(GLFWEW::WindowRef window, MainScene* scene)
 */
 bool initialize(MainScene* scene)
 {
-  sprBackground = Sprite("Res/UnknownPlanet.png");
-  sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
-  sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
-  sprPlayer.health = 1;
+  scene->sprBackground = Sprite("Res/UnknownPlanet.png");
+  scene->sprPlayer.spr = Sprite("Res/Objects.png", glm::vec3(0, 0, 0), Rect(0, 0, 64, 32));
+  scene->sprPlayer.collisionShape = Rect(-24, -8, 48, 16);
+  scene->sprPlayer.health = 1;
 
-  initializeActorList(std::begin(enemyList), std::end(enemyList));
-  initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
-  initializeActorList(std::begin(effectList), std::end(effectList));
+  initializeActorList(std::begin(scene->enemyList), std::end(scene->enemyList));
+  initializeActorList(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
+  initializeActorList(std::begin(scene->effectList), std::end(scene->effectList));
 
-  score = 0;
+  scene->score = 0;
 
-  enemyMap.Load("Res/EnemyMap.json");
-  mapCurrentPosX = mapProcessedX = windowWidth;
+  scene->enemyMap.Load("Res/EnemyMap.json");
+  scene->mapCurrentPosX = scene->mapProcessedX = windowWidth;
 
   Audio::EngineRef audio = Audio::Engine::Instance();
-  seBlast = audio.Prepare("Res/Audio/Blast.xwm");
-  sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
-  bgm = audio.Prepare(L"Res/Audio/Neolith.xwm");
-  bgm->Play(Audio::Flag_Loop);
+  scene->seBlast = audio.Prepare("Res/Audio/Blast.xwm");
+  scene->sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
+  scene->bgm = audio.Prepare(L"Res/Audio/Neolith.xwm");
+  scene->bgm->Play(Audio::Flag_Loop);
 
   return true;
 }
@@ -463,19 +467,19 @@ bool initialize(MainScene* scene)
 */
 void finalize(MainScene* scene)
 {
-  sprBackground = Sprite();
-  sprPlayer.spr = Sprite();
+  scene->sprBackground = Sprite();
+  scene->sprPlayer.spr = Sprite();
 
-  initializeActorList(std::begin(enemyList), std::end(enemyList));
-  initializeActorList(std::begin(playerBulletList), std::end(playerBulletList));
-  initializeActorList(std::begin(effectList), std::end(effectList));
+  initializeActorList(std::begin(scene->enemyList), std::end(scene->enemyList));
+  initializeActorList(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
+  initializeActorList(std::begin(scene->effectList), std::end(scene->effectList));
 
-  enemyMap.Unload();
+  scene->enemyMap.Unload();
 
-  bgm->Stop();
-  seBlast.reset();
-  sePlayerShot.reset();
-  bgm.reset();
+  scene->bgm->Stop();
+  scene->seBlast.reset();
+  scene->sePlayerShot.reset();
+  scene->bgm.reset();
 }
 
 /**
@@ -571,15 +575,16 @@ void renderActorList(const Actor* first, const Actor* last, SpriteRenderer* rend
 *
 * @param bullet 自機の弾のポインタ.
 * @param enemy  敵のポインタ.
+* @param scene  メイン画面用構造体のポインタ.
 */
-void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
+void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy, MainScene* scene)
 {
   bullet->health -= 1;
   enemy->health -= 1;
   if (enemy->health <= 0) {
-    score += 100;
-    seBlast->Play();
-    Actor* blast = findAvailableActor(std::begin(effectList), std::end(effectList));
+    scene->score += 100;
+    scene->seBlast->Play();
+    Actor* blast = findAvailableActor(std::begin(scene->effectList), std::end(scene->effectList));
     if (blast != nullptr) {
       blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
       blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
@@ -595,8 +600,9 @@ void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
 *
 * @param bullet 自機のポインタ.
 * @param enemy  敵のポインタ.
+* @param scene  メイン画面用構造体のポインタ.
 */
-void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
+void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene* scene)
 {
   if (player->health > enemy->health) {
     player->health -= enemy->health;
@@ -606,8 +612,8 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
     player->health = 0;
   }
   if (enemy->health <= 0) {
-    score += 100;
-    Actor* blast = findAvailableActor(std::begin(effectList), std::end(effectList));
+    scene->score += 100;
+    Actor* blast = findAvailableActor(std::begin(scene->effectList), std::end(scene->effectList));
     if (blast != nullptr) {
       blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
       blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
@@ -617,7 +623,7 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
     }
   }
   if (player->health <= 0) {
-    Actor* blast = findAvailableActor(std::begin(effectList), std::end(effectList));
+    Actor* blast = findAvailableActor(std::begin(scene->effectList), std::end(scene->effectList));
     if (blast != nullptr) {
       blast->spr = Sprite("Res/Objects.png", enemy->spr.Position());
       blast->spr.Animator(FrameAnimation::Animate::Create(tlBlast));
@@ -636,9 +642,10 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
 * @param lastA     衝突させる配列Aの終端ポインタ.
 * @param firstB    衝突させる配列Bの先頭ポインタ.
 * @param lastB     衝突させる配列Bの終端ポインタ.
+* @param scene     メイン画面用構造体のポインタ.
 * @param function  A-B間で衝突が検出されたときに実行する関数.
 */
-void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, CollisionHandlerType function)
+void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, MainScene* scene, CollisionHandlerType function)
 {
   for (Actor* a = firstA; a != lastA; ++a) {
     if (a->health <= 0) {
@@ -653,7 +660,7 @@ void detectCollision(Actor* firstA, Actor* lastA, Actor* firstB, Actor* lastB, C
       Rect rectB = b->collisionShape;
       rectB.origin += glm::vec2(b->spr.Position());
       if (detectCollision(&rectA, &rectB)) {
-        function(a, b);
+        function(a, b, scene);
         if (a->health <= 0) {
           break;
         }
