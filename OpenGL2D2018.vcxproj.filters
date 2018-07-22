@@ -106,5 +106,17 @@
     <ClInclude Include="Lib\Easy\TiledMap.h">
       <Filter>Lib\Easy</Filter>
     </ClInclude>
+    <ClInclude Include="Src\TitleSceneh.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GameOverScene.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\MainScene.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\GameData.h">
+      <Filter>Src</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
