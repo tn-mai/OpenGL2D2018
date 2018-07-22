@@ -33,6 +33,8 @@ struct MainScene
   TiledMap enemyMap;
   float mapCurrentPosX;
   float mapProcessedX;
+
+  float timer;
 };
 bool initialize(MainScene*);
 void finalize(MainScene*);

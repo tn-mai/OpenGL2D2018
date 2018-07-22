@@ -121,12 +121,7 @@ void update(GLFWEW::WindowRef window)
     return;
   } else if (gamestate == gamestateMain) {
     update(window, &mainScene);
-    if (mainScene.sprPlayer.health <= 0) {
-      finalize(&mainScene);
-      gamestate = gamestateGameover;
-      initialize(&gameOverScene);
-      return;
-    }
+    return;
   }
 }
 

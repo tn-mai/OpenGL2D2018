@@ -144,6 +144,17 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
 {
   const float deltaTime = window.DeltaTime();
 
+  // 自機が破壊されていたらゲームオーバー画面に切り替える.
+  if (scene->sprPlayer.health <= 0) {
+    scene->timer -= deltaTime;
+    if (scene->timer <= 0) {
+      finalize(scene);
+      gamestate = gamestateGameover;
+      initialize(&gameOverScene);
+      return;
+    }
+  }
+
   // 自機の移動.
   if (scene->sprPlayer.health > 0) {
     if (scene->playerVelocity.x || scene->playerVelocity.y) {
@@ -333,5 +344,6 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
       blast->spr.Scale(glm::vec2(2, 2));
       blast->health = 1;
     }
+    mainScene.timer = 2;
   }
 }
