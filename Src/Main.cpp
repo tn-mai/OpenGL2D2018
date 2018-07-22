@@ -2,6 +2,8 @@
 * @file Main.cpp
 */
 #include "TitleSceneh.h"
+#include "GameOverScene.h"
+#include "MainScene.h"
 #include "GLFWEW.h"
 #include "Texture.h"
 #include "Sprite.h"
@@ -14,16 +16,6 @@
 const char title[] = "OpenGL2D 2018"; // ウィンドウタイトル.
 const int windowWidth = 800; // ウィンドウの幅.
 const int windowHeight = 600; // ウィンドウの高さ.
-
-/**
-* ゲームキャラクター構造体.
-*/
-struct Actor
-{
-  Sprite spr; // スプライト.
-  Rect collisionShape; // 衝突判定の位置と大きさ.
-  int health; // 耐久力.
-};
 
 /*
 * ゲームの表示に関する変数.
@@ -73,49 +65,6 @@ using CollisionHandlerType = void(*)(Actor*, Actor*, MainScene*);
 void detectCollision(Actor* first0, Actor* last0, Actor* first1, Actor* last1, MainScene*, CollisionHandlerType function);
 void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy, MainScene*);
 void playerAndEnemyContactHandler(Actor * player, Actor * enemy, MainScene*);
-
-/**
-* ゲームオーバー画面で使用する構造体.
-*/
-struct GameOverScene
-{
-  Sprite bg;
-  float timer;
-};
-bool initialize(GameOverScene*);
-void finalize(GameOverScene*);
-void processInput(GLFWEW::WindowRef, GameOverScene*);
-void update(GLFWEW::WindowRef, GameOverScene*);
-void render(GLFWEW::WindowRef, GameOverScene*);
-
-/**
-* メイン画面で使用する構造体.
-*/
-struct MainScene
-{
-  Sprite sprBackground; // 背景用スプライト.
-  Actor sprPlayer;     // 自機用スプライト.
-  glm::vec3 playerVelocity; // 自機の移動速度.
-  Actor enemyList[128]; // 敵のリスト.
-  Actor playerBulletList[128]; // 自機の弾のリスト.
-  Actor effectList[128]; // 爆発などの特殊効果用スプライトのリスト.
-
-  float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
-  int score; // プレイヤーのスコア.
-  Audio::SoundPtr bgm; // BGM制御用変数.
-  Audio::SoundPtr seBlast;
-  Audio::SoundPtr sePlayerShot;
-
-  // 敵の出現を制御するためのデータ.
-  TiledMap enemyMap;
-  float mapCurrentPosX;
-  float mapProcessedX;
-};
-bool initialize(MainScene*);
-void finalize(MainScene*);
-void processInput(GLFWEW::WindowRef, MainScene*);
-void update(GLFWEW::WindowRef, MainScene*);
-void render(GLFWEW::WindowRef, MainScene*);
 
 /**
 * ゲームの状態管理.
