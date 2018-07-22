@@ -22,12 +22,22 @@ struct MainScene
   Actor enemyList[128]; // 敵のリスト.
   Actor playerBulletList[128]; // 自機の弾のリスト.
   Actor effectList[128]; // 爆発などの特殊効果用スプライトのリスト.
+  Actor itemList[32]; // パワーアップや得点アイテムのリスト.
 
   float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
   int score; // プレイヤーのスコア.
+
+  const int weaponNormalShot = 0;
+  const int weaponLaser = 1;
+  int weapon; // 自機の武器.
+  int laserCount;
+  float prevLaserTime;
+  float laserPosX;
+
   Audio::SoundPtr bgm; // BGM制御用変数.
   Audio::SoundPtr seBlast;
   Audio::SoundPtr sePlayerShot;
+  Audio::SoundPtr seItem;
 
   // 敵の出現を制御するためのデータ.
   TiledMap enemyMap;

@@ -12,6 +12,7 @@ struct Actor
   Sprite spr; // スプライト.
   Rect collisionShape; // 衝突判定の位置と大きさ.
   int health; // 耐久力.
+  int type; // 種類.
 };
 
 bool detectCollision(const Rect* lhs, const Rect* rhs);

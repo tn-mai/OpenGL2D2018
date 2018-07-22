@@ -24,8 +24,20 @@ const FrameAnimation::KeyFrame blastKeyFrames[] = {
   { 20 / 60.0f, glm::vec2(416, 96), glm::vec2(32, 32) },
 };
 
+// アイテムの種類
+const int itemNormalShot = 0;
+const int itemLaser = 1;
+const int itemScore = 2;
+
+// 敵の種類.
+const int enemyZako = 0;
+const int enemyZakoWithNormalShotItem = 1;
+const int enemyZakoWithLaserItem = 2;
+const int enemyZakoWithScoreItem = 3;
+
 void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy);
 void playerAndEnemyContactHandler(Actor * player, Actor * enemy);
+void playerAndItemContactHandler(Actor* player, Actor* item);
 
 /**
 * メイン画面用の構造体の初期設定を行う.
@@ -49,8 +61,12 @@ bool initialize(MainScene* scene)
   initializeActorList(std::begin(scene->enemyList), std::end(scene->enemyList));
   initializeActorList(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
   initializeActorList(std::begin(scene->effectList), std::end(scene->effectList));
+  initializeActorList(std::begin(scene->itemList), std::end(scene->itemList));
 
   scene->score = 0;
+  scene->weapon = scene->weaponNormalShot;
+  scene->laserCount = -1;
+  scene->prevLaserTime = 0;
 
   scene->enemyMap.Load("Res/EnemyMap.json");
   scene->mapCurrentPosX = scene->mapProcessedX = (float)GLFWEW::Window::Instance().Width();
@@ -58,6 +74,7 @@ bool initialize(MainScene* scene)
   Audio::EngineRef audio = Audio::Engine::Instance();
   scene->seBlast = audio.Prepare("Res/Audio/Blast.xwm");
   scene->sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
+  scene->seItem = audio.Prepare("Res/Audio/GetItem.xwm");
   scene->bgm = audio.Prepare(L"Res/Audio/Neolith.xwm");
   scene->bgm->Play(Audio::Flag_Loop);
 
@@ -74,6 +91,7 @@ void finalize(MainScene* scene)
   scene->bgm->Stop();
   scene->seBlast.reset();
   scene->sePlayerShot.reset();
+  scene->seItem.reset();
   scene->bgm.reset();
 
   scene->enemyMap.Unload();
@@ -121,14 +139,49 @@ void processInput(GLFWEW::WindowRef window, MainScene* scene)
     }
 
     // 弾の発射.
-    if (gamepad.buttonDown & GamePad::A) {
-      scene->sePlayerShot->Play();
-      Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
-      if (bullet != nullptr) {
-        bullet->spr = Sprite("Res/Objects.png", scene->sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
-        bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
-        bullet->collisionShape = Rect(-16, -8, 32, 16);
-        bullet->health = 1;
+    if (scene->weapon == scene->weaponNormalShot) {
+      if (gamepad.buttonDown & GamePad::A) {
+        scene->sePlayerShot->Play();
+        Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
+        if (bullet != nullptr) {
+          bullet->spr = Sprite("Res/Objects.png", scene->sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
+          bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
+          bullet->collisionShape = Rect(-16, -8, 32, 16);
+          bullet->health = 1;
+          bullet->type = scene->weaponNormalShot;
+        }
+      }
+    } else if (scene->weapon == scene->weaponLaser) {
+      if ((gamepad.buttons & GamePad::A) && scene->laserCount == -1) {
+        scene->laserCount = 0;
+        scene->prevLaserTime = 1;
+        scene->laserPosX = scene->sprPlayer.spr.Position().x + 32;
+        scene->sePlayerShot->Play();
+      }
+      if (scene->laserCount >= 0 && (scene->laserCount < 10 && scene->prevLaserTime >= (28.0f / 1600.0f))) {
+        Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
+        if (bullet != nullptr) {
+          Rect rect = Rect(112, 0, 32, 16);
+          if (scene->laserCount == 0) {
+            rect = Rect(128, 0, 32, 16);
+          } else if (scene->laserCount == 9) {
+            rect = Rect(96, 0, 32, 16);
+          }
+          glm::vec3 pos = scene->sprPlayer.spr.Position();
+          pos.x = scene->laserPosX;
+          bullet->spr = Sprite("Res/Objects.png", pos, rect);
+          namespace TA = TweenAnimation;
+          bullet->spr.Tweener(TA::Animate::Create(TA::MoveBy::Create(1, glm::vec3(1600, 0, 0), TA::EasingType::Linear, TA::Target::X)));
+          bullet->collisionShape = Rect(-16, -8, 32, 16);
+          bullet->health = 4;
+          bullet->type = scene->weaponLaser;
+        }
+        scene->prevLaserTime = 0;
+        scene->laserCount += 1;
+      }
+      if (scene->laserCount >= 5 && scene->prevLaserTime > 0.25f) {
+        scene->prevLaserTime = 0;
+        scene->laserCount = -1;
       }
     }
   }
@@ -176,6 +229,7 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
       scene->sprPlayer.spr.Position(newPos);
     }
     scene->sprPlayer.spr.Update(deltaTime);
+    scene->prevLaserTime += deltaTime;
   }
 
   // 敵の出現.
@@ -196,11 +250,32 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
     const int mapX = static_cast<int>(scene->mapProcessedX / tileSize.x);
     for (int mapY = 0; mapY < tiledMapLayer.size.y; ++mapY) {
       const int enemyId = 256; // 敵とみなすタイルID.
-      if (tiledMapLayer.At(mapY, mapX) == enemyId) {
+      const int tileNo = tiledMapLayer.At(mapY, mapX);
+      struct EnemyData
+      {
+        int id;
+        int type;
+        Rect imageRect;
+        Rect collisionRect;
+      };
+      const EnemyData enemyDataList[] = {
+        { 256, enemyZako, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
+      { 228, enemyZakoWithNormalShotItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
+      { 229, enemyZakoWithLaserItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
+      { 230, enemyZakoWithScoreItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
+      };
+      const EnemyData* enemyData = nullptr;
+      for (const EnemyData* i = std::begin(enemyDataList); i != std::end(enemyDataList); ++i) {
+        if (i->id == tileNo) {
+          enemyData = i;
+          break;
+        }
+      }
+      if (enemyData != nullptr) {
         Actor* enemy = findAvailableActor(std::begin(scene->enemyList), std::end(scene->enemyList));
         if (enemy != nullptr) {
           const float y = window.Height() * 0.5f - static_cast<float>(mapY * tileSize.x);
-          enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * window.Width(), y, 0), Rect(480, 0, 32, 32));
+          enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * window.Width(), y, 0), enemyData->imageRect);
           enemy->spr.Animator(FrameAnimation::Animate::Create(scene->tlEnemy));
           namespace TA = TweenAnimation;
           TA::SequencePtr seq = TA::Sequence::Create(4);
@@ -210,8 +285,9 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
           par->Add(seq);
           par->Add(TA::MoveBy::Create(8, glm::vec3(-1000, 0, 0), TA::EasingType::Linear, TA::Target::X));
           enemy->spr.Tweener(TA::Animate::Create(par));
-          enemy->collisionShape = Rect(-16, -16, 32, 32);
+          enemy->collisionShape = enemyData->collisionRect;
           enemy->health = 1;
+          enemy->type = enemyData->type;
         }
       }
     }
@@ -237,9 +313,25 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
 #endif
 
   // Actorの更新.
+  const float y = scene->sprPlayer.spr.Position().y;
+  for (Actor* i = std::begin(scene->playerBulletList); i != std::end(scene->playerBulletList); ++i) {
+    if (i->health > 0 && i->type == scene->weaponLaser) {
+      glm::vec3 pos = i->spr.Position();
+      pos.y = y;
+      i->spr.Position(pos);
+    }
+  }
   updateActorList(std::begin(scene->enemyList), std::end(scene->enemyList), deltaTime);
   updateActorList(std::begin(scene->playerBulletList), std::end(scene->playerBulletList), deltaTime);
   updateActorList(std::begin(scene->effectList), std::end(scene->effectList), deltaTime);
+  updateActorList(std::begin(scene->itemList), std::end(scene->itemList), deltaTime);
+
+  // 自機とアイテムの衝突判定.
+  detectCollision(
+    &scene->sprPlayer, &scene->sprPlayer + 1,
+    std::begin(scene->itemList), std::end(scene->itemList),
+    playerAndItemContactHandler
+  );
 
   // 自機の弾と敵の衝突判定.
   detectCollision(
@@ -271,6 +363,7 @@ void render(GLFWEW::WindowRef window, MainScene* scene)
   renderActorList(std::begin(scene->enemyList), std::end(scene->enemyList), &renderer);
   renderActorList(std::begin(scene->playerBulletList), std::end(scene->playerBulletList), &renderer);
   renderActorList(std::begin(scene->effectList), std::end(scene->effectList), &renderer);
+  renderActorList(std::begin(scene->itemList), std::end(scene->itemList), &renderer);
   renderer.EndUpdate();
   renderer.Draw({ window.Width(), window.Height() });
 
@@ -292,8 +385,11 @@ void render(GLFWEW::WindowRef window, MainScene* scene)
 */
 void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
 {
-  bullet->health -= 1;
-  enemy->health -= 1;
+  // レーザーは耐久値4未満の敵を貫通する.
+  enemy->health -= bullet->health;
+  if (bullet->type != mainScene.weaponLaser || enemy->health >= 4) {
+    bullet->health = 0;
+  }
   if (enemy->health <= 0) {
     mainScene.score += 100;
     mainScene.seBlast->Play();
@@ -304,6 +400,18 @@ void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
       namespace TA = TweenAnimation;
       blast->spr.Tweener(TA::Animate::Create(TA::Rotation::Create(20 / 60.0f, glm::pi<float>() * 0.5f)));
       blast->health = 1;
+    }
+    // アイテムを持っている敵だった場合、対応するアイテムを出現させる.
+    if (enemy->type >= enemyZakoWithNormalShotItem && enemy->type <= enemyZakoWithScoreItem) {
+      Actor* item = findAvailableActor(std::begin(mainScene.itemList), std::end(mainScene.itemList));
+      if (item != nullptr) {
+        item->type = enemy->type - enemyZakoWithNormalShotItem;
+        item->spr = Sprite("Res/Objects.png", enemy->spr.Position(), Rect((float)(96 + item->type * 32), 32, 32, 32));
+        namespace TA = TweenAnimation;
+        item->spr.Tweener(TA::Animate::Create(TA::MoveBy::Create(8, glm::vec3(-800, 0, 0))));
+        item->collisionShape = Rect(-16, -16, 32, 32);
+        item->health = 1;
+      }
     }
   }
 }
@@ -346,4 +454,22 @@ void playerAndEnemyContactHandler(Actor * player, Actor * enemy)
     }
     mainScene.timer = 2;
   }
+}
+
+/**
+* 自機とアイテムの衝突.
+*/
+void playerAndItemContactHandler(Actor* player, Actor* item)
+{
+  mainScene.seItem->Play();
+  if (item->type == itemNormalShot) {
+    mainScene.weapon = mainScene.weaponNormalShot;
+  } else if (item->type == itemLaser) {
+    mainScene.weapon = mainScene.weaponLaser;
+    mainScene.laserCount = -1;
+    mainScene.prevLaserTime = 0;
+  } else if (item->type == itemScore) {
+    mainScene.score += 1000;
+  }
+  item->health = 0;
 }
