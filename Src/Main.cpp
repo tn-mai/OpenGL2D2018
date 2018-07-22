@@ -104,6 +104,18 @@ void update(GLFWEW::WindowRef, GameOverScene*);
 void render(GLFWEW::WindowRef, GameOverScene*);
 
 /**
+* メイン画面で使用する構造体.
+*/
+struct MainScene
+{
+};
+bool initialize(MainScene*);
+void finalize(MainScene*);
+void processInput(GLFWEW::WindowRef, MainScene*);
+void update(GLFWEW::WindowRef, MainScene*);
+void render(GLFWEW::WindowRef, MainScene*);
+
+/**
 * ゲームの状態管理.
 */
 struct GameData
@@ -115,6 +127,7 @@ struct GameData
 
   TitleScene title;
   GameOverScene gameOver;
+  MainScene main;
 };
 GameData gameData;
 
@@ -180,8 +193,18 @@ void processInput(GLFWEW::WindowRef window)
   } else if (gameData.gamestate == gameData.gamestateGameover) {
     processInput(window, &gameData.gameOver);
     return;
+  } else if (gameData.gamestate == gameData.gamestateMain) {
+    processInput(window, &gameData.main);
   }
+}
 
+/**
+* プレイヤーの入力を処理する.
+*
+* @param window ゲームを管理するウィンドウ.
+*/
+void processInput(GLFWEW::WindowRef window, MainScene* scene)
+{
   if (sprPlayer.health <= 0) {
     playerVelocity = glm::vec3(0, 0, 0);
   } else {
