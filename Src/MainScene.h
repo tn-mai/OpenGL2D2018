@@ -22,6 +22,9 @@ struct Actor
 */
 struct MainScene
 {
+  FrameAnimation::TimelinePtr tlEnemy;
+  FrameAnimation::TimelinePtr tlBlast;
+
   Sprite sprBackground; // 背景用スプライト.
   Actor sprPlayer;     // 自機用スプライト.
   glm::vec3 playerVelocity; // 自機の移動速度.

@@ -65,6 +65,9 @@
     <ClCompile Include="Src\GameOverScene.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="Src\MainScene.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lib\Easy\Audio.h">
