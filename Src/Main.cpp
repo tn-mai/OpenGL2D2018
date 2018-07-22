@@ -375,7 +375,7 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
 }
 
 /**
-* ゲームの状態を描画する..
+* ゲームの状態を描画する.
 *
 * @param window ゲームを管理するウィンドウ.
 */
@@ -394,7 +394,7 @@ void render(GLFWEW::WindowRef window)
 }
 
 /**
-* ゲームの状態を描画する..
+* ゲームの状態を描画する.
 *
 * @param window ゲームを管理するウィンドウ.
 * @param scene  メイン画面用構造体のポインタ.
