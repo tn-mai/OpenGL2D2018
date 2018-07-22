@@ -58,7 +58,7 @@
     <ClInclude Include="Src\GameData.h" />
     <ClInclude Include="Src\GameOverScene.h" />
     <ClInclude Include="Src\MainScene.h" />
-    <ClInclude Include="Src\TitleSceneh.h" />
+    <ClInclude Include="Src\TitleScene.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
