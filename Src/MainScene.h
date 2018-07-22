@@ -6,16 +6,7 @@
 #include "Sprite.h"
 #include "Audio.h"
 #include "TiledMap.h"
-
-/**
-* ゲームキャラクター構造体.
-*/
-struct Actor
-{
-  Sprite spr; // スプライト.
-  Rect collisionShape; // 衝突判定の位置と大きさ.
-  int health; // 耐久力.
-};
+#include "Actor.h"
 
 /**
 * メイン画面で使用する構造体.

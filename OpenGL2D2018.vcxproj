@@ -32,6 +32,7 @@
     <ClCompile Include="Lib\Easy\TiledMap.cpp" />
     <ClCompile Include="Lib\Easy\TweenAnimation.cpp" />
     <ClCompile Include="Lib\Easy\UniformBuffer.cpp" />
+    <ClCompile Include="Src\Actor.cpp" />
     <ClCompile Include="Src\GameOverScene.cpp" />
     <ClCompile Include="Src\Main.cpp" />
     <ClCompile Include="Src\MainScene.cpp" />
@@ -53,6 +54,7 @@
     <ClInclude Include="Lib\Easy\TiledMap.h" />
     <ClInclude Include="Lib\Easy\TweenAnimation.h" />
     <ClInclude Include="Lib\Easy\UniformBuffer.h" />
+    <ClInclude Include="Src\Actor.h" />
     <ClInclude Include="Src\GameData.h" />
     <ClInclude Include="Src\GameOverScene.h" />
     <ClInclude Include="Src\MainScene.h" />

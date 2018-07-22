@@ -68,6 +68,9 @@
     <ClCompile Include="Src\MainScene.cpp">
       <Filter>Src</Filter>
     </ClCompile>
+    <ClCompile Include="Src\Actor.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lib\Easy\Audio.h">
@@ -125,6 +128,9 @@
       <Filter>Src</Filter>
     </ClInclude>
     <ClInclude Include="Src\GameData.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Src\Actor.h">
       <Filter>Src</Filter>
     </ClInclude>
   </ItemGroup>
