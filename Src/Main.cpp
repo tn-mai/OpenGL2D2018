@@ -387,8 +387,20 @@ void render(GLFWEW::WindowRef window)
   } else if (gameData.gamestate == gameData.gamestateGameover) {
     render(window, &gameData.gameOver);
     return;
+  } else if (gameData.gamestate == gameData.gamestateMain) {
+    render(window, &gameData.main);
+    return;
   }
+}
 
+/**
+* ゲームの状態を描画する..
+*
+* @param window ゲームを管理するウィンドウ.
+* @param scene  メイン画面用構造体のポインタ.
+*/
+void render(GLFWEW::WindowRef window, MainScene* scene)
+{
   renderer.BeginUpdate();
   renderer.AddVertices(sprBackground);
   if (sprPlayer.health > 0) {
