@@ -37,6 +37,7 @@ struct MainScene
   Audio::SoundPtr bgm; // BGM制御用変数.
   Audio::SoundPtr seBlast;
   Audio::SoundPtr sePlayerShot;
+  Audio::SoundPtr sePlayerLaser;
   Audio::SoundPtr seItem;
 
   // 敵の出現を制御するためのデータ.

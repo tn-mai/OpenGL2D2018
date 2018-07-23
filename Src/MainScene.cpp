@@ -74,6 +74,7 @@ bool initialize(MainScene* scene)
   Audio::EngineRef audio = Audio::Engine::Instance();
   scene->seBlast = audio.Prepare("Res/Audio/Blast.xwm");
   scene->sePlayerShot = audio.Prepare("Res/Audio/PlayerShot.xwm");
+  scene->sePlayerLaser = audio.Prepare("Res/Audio/Laser.xwm");
   scene->seItem = audio.Prepare("Res/Audio/GetItem.xwm");
   scene->bgm = audio.Prepare(L"Res/Audio/Neolith.xwm");
   scene->bgm->Play(Audio::Flag_Loop);
@@ -91,6 +92,7 @@ void finalize(MainScene* scene)
   scene->bgm->Stop();
   scene->seBlast.reset();
   scene->sePlayerShot.reset();
+  scene->sePlayerLaser.reset();
   scene->seItem.reset();
   scene->bgm.reset();
 
@@ -156,9 +158,9 @@ void processInput(GLFWEW::WindowRef window, MainScene* scene)
         scene->laserCount = 0;
         scene->prevLaserTime = 1;
         scene->laserPosX = scene->sprPlayer.spr.Position().x + 32;
-        scene->sePlayerShot->Play();
+        scene->sePlayerLaser->Play();
       }
-      if (scene->laserCount >= 0 && (scene->laserCount < 10 && scene->prevLaserTime >= (28.0f / 1600.0f))) {
+      if ((scene->laserCount >= 0 && scene->laserCount < 10) && scene->prevLaserTime >= (28.0f / 1600.0f)) {
         Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
         if (bullet != nullptr) {
           Rect rect = Rect(112, 0, 32, 16);
@@ -179,7 +181,7 @@ void processInput(GLFWEW::WindowRef window, MainScene* scene)
         scene->prevLaserTime = 0;
         scene->laserCount += 1;
       }
-      if (scene->laserCount >= 5 && scene->prevLaserTime > 0.25f) {
+      if (scene->laserCount >= 10 && scene->prevLaserTime > 0.25f) {
         scene->prevLaserTime = 0;
         scene->laserCount = -1;
       }
