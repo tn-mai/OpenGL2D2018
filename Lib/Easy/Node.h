@@ -39,14 +39,26 @@ public:
   void Name(const char* n) { name = n; } 
   const std::string& Name() const { return name; }
 
-  void Position(const glm::vec3& p) { position = p; }
+  void Position(const glm::vec3& p) {
+    isDirtyTransformation = true;
+    position = p;
+  }
   const glm::vec3& Position() const { return position; }
   const glm::vec3& WorldPosition() const { return worldPosition; }
-  void Scale(const glm::vec2& s) { scale = s; }
+  void Scale(const glm::vec2& s) {
+    isDirtyTransformation = true;
+    scale = s;
+  }
   const glm::vec2& Scale() const { return scale; }
-  void Rotation(float r) { rotation = r; }
+  void Rotation(float r) {
+    isDirtyTransformation = true;
+    rotation = r;
+  }
   float Rotation() const { return rotation; }
-  void Shear(float s) { shear = s; }
+  void Shear(float s) {
+    isDirtyTransformation = true;
+    shear = s;
+  }
   float Shear() const { return shear; }
   const glm::mat4x4& Transform() const { return transform; }
 
@@ -64,6 +76,7 @@ public:
 
 private:
   virtual void Draw(SpriteRenderer&) const;
+  void DoTransform();
 
   std::string name; ///< ノード名.
   glm::vec3 position; ///< ノードの座標.
@@ -71,6 +84,7 @@ private:
   float rotation = 0; 
   float shear = 0;
 
+  bool isDirtyTransformation = false;
   glm::mat4x4 transform; ///< ノードの座標変換行列.
   glm::vec3 worldPosition;
 

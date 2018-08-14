@@ -66,14 +66,7 @@ void Node::UpdateRecursive(float dt)
 
 void Node::UpdateTransform()
 {
-  glm::mat4x4 parentTransform;
-  if (parent) {
-    parentTransform = parent->Transform();
-  }
-  glm::mat4x4 matShear;
-  matShear[1][0] = shear;
-
-  transform = glm::rotate(glm::scale(glm::translate(parentTransform, position), glm::vec3(scale, 1.0f)), rotation, glm::vec3(0, 0, 1)) * matShear;
+  DoTransform();
   worldPosition = transform * glm::vec4(0, 0, 0, 1);
   for (auto& e : children) {
     if (e) {
@@ -95,14 +88,29 @@ void Node::Update(float dt)
     tweener->Update(*this, dt);
   }
 
-  glm::mat4x4 parentTransform;
-  if (parent) {
-    parentTransform = parent->Transform();
-  }
-  glm::mat4x4 matShear;
-  matShear[1][0] = shear;
-  transform = glm::rotate(glm::scale(glm::translate(parentTransform, position), glm::vec3(scale, 1.0f)), rotation, glm::vec3(0, 0, 1)) * matShear;
+  DoTransform();
   worldPosition = transform * glm::vec4(0, 0, 0, 1);
+}
+
+/**
+* À•W•ÏŠ·‚ðs‚¤.
+*/
+void Node::DoTransform()
+{
+  if (parent && parent->isDirtyTransformation) {
+    parent->DoTransform();
+    isDirtyTransformation = true;
+  }
+  if (isDirtyTransformation) {
+    isDirtyTransformation = false;
+    glm::mat4x4 parentTransform;
+    if (parent) {
+      parentTransform = parent->Transform();
+    }
+    glm::mat4x4 matShear;
+    matShear[1][0] = shear;
+    transform = glm::rotate(glm::scale(glm::translate(parentTransform, position), glm::vec3(scale, 1.0f)), rotation, glm::vec3(0, 0, 1)) * matShear;
+  }
 }
 
 /**
