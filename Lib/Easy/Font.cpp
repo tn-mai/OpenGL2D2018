@@ -202,7 +202,7 @@ bool Renderer::AddString(const glm::vec2& position, const wchar_t* str)
     return false;
   }
 
-  const glm::u16vec2 thicknessAndOutline = glm::vec2(0.625f - thickness * 0.375f, border) * 65535.0f;
+  const glm::u16vec2 thicknessAndOutline = glm::vec2(0.625f + thickness * 0.375f, border) * 65535.0f;
   Vertex* p = pVBO + vboSize;
   glm::vec2 pos = position * reciprocalScreenSize;
   for (const wchar_t* itr = str; *itr; ++itr) {

@@ -69,9 +69,9 @@ private:
 
   glm::vec2 scale = glm::vec2(1, 1);
   glm::u8vec4 color = glm::u8vec4(255, 255, 255, 255);
-  glm::u8vec4 subColor = glm::u8vec4(64, 64, 64, 255);
-  float thickness = 0.5f;
-  float border = 0;
+  glm::u8vec4 subColor = glm::u8vec4(32, 32, 32, 255);
+  float thickness = 0.33f;
+  float border = 0.25f;
   bool propotional = true;
   float fixedAdvance = 0;
 
