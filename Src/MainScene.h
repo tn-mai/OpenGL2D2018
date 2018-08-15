@@ -27,12 +27,22 @@ struct MainScene
   float enemyGenerationTimer; // 次の敵が出現するまでの時間(単位:秒).
   int score; // プレイヤーのスコア.
 
+  // 武器の種類.
   const int weaponNormalShot = 0;
   const int weaponLaser = 1;
+
   int weapon; // 自機の武器.
-  int laserCount;
-  float prevLaserTime;
-  float laserPosX;
+
+  const int weaponLevelMin = 0;
+  const int weaponLevelMax = 5;
+  int weaponLevel; // 武器の強化度.
+
+  float shotTimer; // 弾の発射間隔.
+
+  const int laserLength = 16;
+  int laserCount; // 発射中のレーザーの長さ.
+  Actor* laserBack; // レーザーの末尾.
+  float laserPosX; // レーザー発射地点のX座標(Y座標は自機に追随するので不要).
 
   Audio::SoundPtr bgm; // BGM制御用変数.
   Audio::SoundPtr seBlast;

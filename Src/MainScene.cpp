@@ -5,6 +5,7 @@
 #include "GameOverScene.h"
 #include "GameData.h"
 #include <glm/gtc/constants.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
 // ìGÇÃÉAÉjÉÅÅ[ÉVÉáÉì.
 const FrameAnimation::KeyFrame enemyKeyFrames[] = {
@@ -65,8 +66,9 @@ bool initialize(MainScene* scene)
 
   scene->score = 0;
   scene->weapon = scene->weaponNormalShot;
+  scene->weaponLevel = 5;// scene->weaponLevelMin;
   scene->laserCount = -1;
-  scene->prevLaserTime = 0;
+  scene->laserBack = nullptr;
 
   scene->enemyMap.Load("Res/EnemyMap.json");
   scene->mapCurrentPosX = scene->mapProcessedX = (float)GLFWEW::Window::Instance().Width();
@@ -142,48 +144,59 @@ void processInput(GLFWEW::WindowRef window, MainScene* scene)
 
     // íeÇÃî≠éÀ.
     if (scene->weapon == scene->weaponNormalShot) {
-      if (gamepad.buttonDown & GamePad::A) {
+      if (gamepad.buttonDown & GamePad::A || (gamepad.buttons & GamePad::A && scene->shotTimer <= 0)) {
+        scene->shotTimer = 1.0f / 8.0f;
         scene->sePlayerShot->Play();
-        Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
-        if (bullet != nullptr) {
-          bullet->spr = Sprite("Res/Objects.png", scene->sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
-          bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, glm::vec3(1200, 0, 0))));
-          bullet->collisionShape = Rect(-16, -8, 32, 16);
-          bullet->health = 1;
-          bullet->type = scene->weaponNormalShot;
+        const float rot[] = { 0, 15, -15, 30, -30 };
+        const int count[] = { 0, 1, 3, 3, 5, 5 };
+        for (int i = 0; i < count[scene->weaponLevel]; ++i) {
+          Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
+          if (bullet != nullptr) {
+            bullet->spr = Sprite("Res/Objects.png", scene->sprPlayer.spr.Position(), Rect(64, 0, 32, 16));
+            bullet->spr.Rotation(glm::radians(rot[i]));
+            const glm::vec3 v = glm::rotate(glm::mat4(), glm::radians(rot[i]), glm::vec3(0, 0, 1)) * glm::vec4(1200, 0, 0, 1);
+            bullet->spr.Tweener(TweenAnimation::Animate::Create(TweenAnimation::MoveBy::Create(1, v)));
+            bullet->collisionShape = Rect(-16, -8, 32, 16);
+            bullet->health = 1;
+            bullet->type = scene->weaponNormalShot;
+          }
         }
       }
     } else if (scene->weapon == scene->weaponLaser) {
       if ((gamepad.buttons & GamePad::A) && scene->laserCount == -1) {
         scene->laserCount = 0;
-        scene->prevLaserTime = 1;
         scene->laserPosX = scene->sprPlayer.spr.Position().x + 32;
         scene->sePlayerLaser->Play();
       }
-      if ((scene->laserCount >= 0 && scene->laserCount < 10) && scene->prevLaserTime >= (28.0f / 1600.0f)) {
+      if ((scene->laserCount >= 0 && scene->laserCount < scene->laserLength) && (!scene->laserBack || scene->laserBack->spr.Position().x - scene->laserPosX >= 32)) {
         Actor* bullet = findAvailableActor(std::begin(scene->playerBulletList), std::end(scene->playerBulletList));
         if (bullet != nullptr) {
-          Rect rect = Rect(112, 0, 32, 16);
-          if (scene->laserCount == 0) {
-            rect = Rect(128, 0, 32, 16);
-          } else if (scene->laserCount == 9) {
-            rect = Rect(96, 0, 32, 16);
-          }
           glm::vec3 pos = scene->sprPlayer.spr.Position();
-          pos.x = scene->laserPosX;
+          Rect rect;
+          if (scene->laserCount == 0) {
+            pos.x = scene->laserPosX;
+            rect = Rect(128, 0, 32, 16);
+          } else if (scene->laserCount == scene->laserLength - 1) {
+            pos.x = scene->laserBack->spr.Position().x - 32.0f;
+            rect = Rect(96, 0, 32, 16);
+          } else {
+            pos.x = scene->laserBack->spr.Position().x - 32.0f;
+            rect = Rect(112, 0, 32, 16);
+          }
           bullet->spr = Sprite("Res/Objects.png", pos, rect);
           namespace TA = TweenAnimation;
           bullet->spr.Tweener(TA::Animate::Create(TA::MoveBy::Create(1, glm::vec3(1600, 0, 0), TA::EasingType::Linear, TA::Target::X)));
-          bullet->collisionShape = Rect(-16, -8, 32, 16);
-          bullet->health = 4;
+          bullet->spr.Scale(glm::vec2(1, static_cast<float>(scene->weaponLevel) / 5.0f * 2.0f + 1.0f));
+          bullet->collisionShape = Rect(-16, -8 * bullet->spr.Scale().y, 32, 16 * bullet->spr.Scale().y);
+          bullet->health = 2 * scene->weaponLevel;
           bullet->type = scene->weaponLaser;
+          scene->laserBack = bullet;
+          scene->laserCount += 1;
         }
-        scene->prevLaserTime = 0;
-        scene->laserCount += 1;
       }
-      if (scene->laserCount >= 10 && scene->prevLaserTime > 0.25f) {
-        scene->prevLaserTime = 0;
+      if (scene->laserCount >= scene->laserLength && scene->laserBack->spr.Position().x - scene->laserPosX >= 512) {
         scene->laserCount = -1;
+        scene->laserBack = nullptr;
       }
     }
   }
@@ -231,7 +244,10 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
       scene->sprPlayer.spr.Position(newPos);
     }
     scene->sprPlayer.spr.Update(deltaTime);
-    scene->prevLaserTime += deltaTime;
+
+    if (scene->shotTimer > 0) {
+      scene->shotTimer -= deltaTime;
+    }
   }
 
   // ìGÇÃèoåª.
@@ -259,12 +275,13 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
         int type;
         Rect imageRect;
         Rect collisionRect;
+		glm::vec4 color;
       };
       const EnemyData enemyDataList[] = {
-        { 256, enemyZako, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
-      { 228, enemyZakoWithNormalShotItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
-      { 229, enemyZakoWithLaserItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
-      { 230, enemyZakoWithScoreItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32) },
+        { 256, enemyZako, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32), glm::vec4(0, 0, 0, 1) },
+      { 228, enemyZakoWithNormalShotItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32), glm::vec4(0.5, 0, 0, 1) },
+      { 229, enemyZakoWithLaserItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32), glm::vec4(0.5, 0, 0, 1) },
+      { 230, enemyZakoWithScoreItem, Rect(480, 0, 32, 32), Rect(-16, -16, 32, 32), glm::vec4(0.5, 0, 0, 1) },
       };
       const EnemyData* enemyData = nullptr;
       for (const EnemyData* i = std::begin(enemyDataList); i != std::end(enemyDataList); ++i) {
@@ -279,6 +296,8 @@ void update(GLFWEW::WindowRef window, MainScene* scene)
           const float y = window.Height() * 0.5f - static_cast<float>(mapY * tileSize.x);
           enemy->spr = Sprite("Res/Objects.png", glm::vec3(0.5f * window.Width(), y, 0), enemyData->imageRect);
           enemy->spr.Animator(FrameAnimation::Animate::Create(scene->tlEnemy));
+		  enemy->spr.ColorMode(BlendMode_Add);
+		  enemy->spr.Color(enemyData->color);
           namespace TA = TweenAnimation;
           TA::SequencePtr seq = TA::Sequence::Create(4);
           seq->Add(TA::MoveBy::Create(1, glm::vec3(0, 100, 0), TA::EasingType::EaseInOut, TA::Target::Y));
@@ -389,7 +408,7 @@ void playerBulletAndEnemyContactHandler(Actor * bullet, Actor * enemy)
 {
   // ÉåÅ[ÉUÅ[ÇÕëœãvíl4ñ¢ñûÇÃìGÇä—í Ç∑ÇÈ.
   enemy->health -= bullet->health;
-  if (bullet->type != mainScene.weaponLaser || enemy->health >= 4) {
+  if (bullet->type != mainScene.weaponLaser || enemy->health >= 2 * mainScene.weaponLevel) {
     bullet->health = 0;
   }
   if (enemy->health <= 0) {
@@ -465,11 +484,17 @@ void playerAndItemContactHandler(Actor* player, Actor* item)
 {
   mainScene.seItem->Play();
   if (item->type == itemNormalShot) {
+    if (mainScene.weapon == mainScene.weaponNormalShot && mainScene.weaponLevel < mainScene.weaponLevelMax) {
+      ++mainScene.weaponLevel;
+    }
     mainScene.weapon = mainScene.weaponNormalShot;
   } else if (item->type == itemLaser) {
+    if (mainScene.weapon == mainScene.weaponLaser && mainScene.weaponLevel < mainScene.weaponLevelMax) {
+      ++mainScene.weaponLevel;
+    }
     mainScene.weapon = mainScene.weaponLaser;
     mainScene.laserCount = -1;
-    mainScene.prevLaserTime = 0;
+    mainScene.laserBack = nullptr;
   } else if (item->type == itemScore) {
     mainScene.score += 1000;
   }
