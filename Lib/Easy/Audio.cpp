@@ -128,7 +128,7 @@ bool LoadWaveFile(HANDLE hFile, WF& wf, std::vector<UINT32>& seekTable, std::vec
 		}
 
 		if (chunk.tag == FOURCC_FORMAT_TAG) {
-			if (!Read(hFile, &wf.u, std::min(chunk.size, sizeof(WF::U)))) {
+			if (!Read(hFile, &wf.u, std::min(static_cast<size_t>(chunk.size), sizeof(WF::U)))) {
 				break;
 			}
 			switch (GetWaveFormatTag(wf.u.ext)) {
